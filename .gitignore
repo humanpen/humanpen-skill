@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+
+# Internal maintenance notes: useful locally, not part of what we publish.
+CLAUDE.md
+AGENTS.md

@@ -1,0 +1,15 @@
+{
+  "name": "humanpen",
+  "owner": {
+    "name": "HumanPen",
+    "email": "support@humanpen.net"
+  },
+  "plugins": [
+    {
+      "name": "humanpen",
+      "description": "Lower AI-detection scores, fix citations, condense, and translate document files.",
+      "version": "1.0.0",
+      "source": "./"
+    }
+  ]
+}
