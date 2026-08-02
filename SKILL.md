@@ -89,5 +89,7 @@ is usually good news, not a missing result. **It is never zero**: report it as
   Interrupting it does not cancel the job - `status <job_id>` picks it back up.
 - **Failures cost nothing.** A job that errors or is cancelled is charged 0.
 - **Result files are kept 7 days**, then deleted; the job record stays.
-- **Two passes work.** If a detector still flags the result, run the new
-  report through `--report` to target only what is still marked.
+- **A second pass is the plan, not a failure.** If a detector still flags the
+  result, humanize the rewritten file again with its new report via `--report`:
+  only the passages still marked get rewritten, and the rest stays put. Keep
+  `balanced` for the second pass too - no need to escalate to `aggressive`.
