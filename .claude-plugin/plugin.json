@@ -10,9 +10,40 @@
   "homepage": "https://humanpen.net",
   "license": "Apache-2.0",
   "keywords": [
-    "humanize", "ai-detection", "turnitin", "ithenticate",
-    "citation-format", "apa", "mla", "ieee", "gbt7714",
-    "document-translation", "condense", "docx", "pptx"
+    "agent-skill",
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "humanize",
+    "ai-humanizer",
+    "humanizer",
+    "ai-detection",
+    "ai-detector",
+    "ai-writing-detection",
+    "aigc",
+    "turnitin",
+    "ithenticate",
+    "citation-format",
+    "citation-formatter",
+    "bibliography",
+    "apa",
+    "mla",
+    "ieee",
+    "harvard",
+    "gbt7714",
+    "document-translation",
+    "condense",
+    "docx",
+    "pptx",
+    "pdf",
+    "academic-writing",
+    "thesis",
+    "research-paper",
+    "humanpen"
   ],
-  "skills": ["./"]
+  "skills": [
+    "./"
+  ]
 }

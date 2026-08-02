@@ -1,14 +1,18 @@
 # humanpen-skill
 
-**让 Claude Code 真正会处理文档。** 一个技能，让 Agent 能直接对硬盘上的 `.docx`、
-`.pptx`、`.pdf` 动手：降低 AI 检测率、转换参考文献格式、按字数缩写、或者翻译——
-排版、表格、图片、引文和公式全部保持原样。
+**让你的 AI Agent 真正会处理文档。** [HumanPen](https://humanpen.net) 的
+[Agent Skill](https://agentskills.io)。让 Claude Code、Codex、Cursor、Gemini CLI
+等 40 多个客户端直接对硬盘上的 `.docx`、`.pptx`、`.pdf` 动手：降低 AI 检测率、
+转换参考文献格式、按字数缩写、或者翻译——排版、表格、图片、引文和公式全部保持
+原样。
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-skill-D97757.svg)](https://claude.com/claude-code)
+[![Agent Skill](https://img.shields.io/badge/Agent_Skills-open_standard-6E56CF.svg)](https://agentskills.io)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.8-3776AB.svg)](https://python.org)
 
 [English](README.md) · 简体中文 · [日本語](README.ja.md)
+
+[官网](https://humanpen.net) · [价格](https://humanpen.net/pricing) · [开发者文档](https://humanpen.net/developers)
 
 ```
 /plugin marketplace add humanpen/humanpen-skill
@@ -40,9 +44,8 @@
 
 ## 获取 API Key
 
-在 <https://humanpen.net/settings> 创建。新账号赠送 100 积分——够处理一篇 1000 词
-的文档。计费为**实际处理**每 1000 词 100 积分，每个任务最低 10 积分。
-**失败和取消的任务不计费。**
+在 <https://humanpen.net> 注册，然后到 <https://humanpen.net/settings/api-keys>
+创建 key。新账号有赠送积分，够跑一篇文档看看效果。
 
 ```bash
 export HUMANPEN_API_KEY=hp_your_key
@@ -72,20 +75,25 @@ git clone https://github.com/humanpen/humanpen-skill ~/.claude/skills/humanpen
 </details>
 
 <details>
-<summary><b>OpenAI Codex，以及任何读 AGENTS.md 的 Agent</b></summary>
+<summary><b>OpenAI Codex</b></summary>
 
-Codex 没有技能加载器，所以直接把脚本告诉它。克隆到任意位置，然后在项目的
-`AGENTS.md` 里加上：
-
-```markdown
-## HumanPen
-文档处理——降 AI 检测率、改引文格式、缩写、翻译——通过
-`python3 /path/to/humanpen-skill/scripts/humanpen.py --help`。
-需要环境变量 HUMANPEN_API_KEY。每个任务消耗积分——实际处理每 1000 词 100 积分、
-最低 10 积分：先说明再等我确认。
+```bash
+git clone https://github.com/humanpen/humanpen-skill ~/.agents/skills/humanpen
 ```
 
-命令完全一样，区别只在于「怎么告诉 Agent 有这么个东西」。
+Codex 也会读仓库里的 `.agents/skills/`，想只在某个项目里用就克隆到那里。
+</details>
+
+<details>
+<summary><b>Cursor、Gemini CLI、OpenCode、Copilot、Goose、Amp、Kiro 等 35+ 客户端</b></summary>
+
+这就是一个标准的 [Agent Skill](https://agentskills.io)：一个装着 `SKILL.md` 的
+文件夹。所有实现该标准的客户端加载的都是同一个文件夹，区别只在于各自扫描哪个
+目录——每家自己的文档里都写了。把仓库克隆进那个目录即安装完成。
+
+```bash
+git clone https://github.com/humanpen/humanpen-skill
+```
 </details>
 
 想用 MCP？[humanpen-mcp](https://github.com/humanpen/humanpen-mcp) 提供同样的
@@ -128,8 +136,21 @@ GB/T 7714、AMA、ACS、OSCOLA。翻译覆盖 12 种语言。
 **任务是分钟级的。** 命令会一直等，并把进度打到 stderr。中断命令**不会**取消
 任务——`status <job_id>` 可以把它接回来。
 
-**`ai_percent` 可能是 `null`，而 `null` 不等于 0。** 当提交文本太短、无法评估时，
-报告打印的是 `*` 而不是数字。把它当成「AI 率 0%」是在替别人下没下过的结论。
+**`ai_percent` 可能是 `null`，而这通常是好消息。** 当 AI 率**低于 20%** 时，
+Turnitin 打印的是 `*` 而不是数字——这一档它拒绝给出具体数值，因为其中误判太多。
+所以 `null` 的意思是「低于 20%，Turnitin 不肯多说」，既不是 0，也不是「没结果」。
+
+## 常见问题
+
+**能把 Turnitin 的 AI 率降下来吗？**
+`balanced` 版一般一次就能降到 20% 以下——这正是 Turnitin 改打 `*`、不再给数字的
+门槛。没到位就把结果连同新报告再传一次，只重写仍被标出的片段。
+
+**iThenticate 的报告也支持吗？**
+支持，两种都能传，格式从文件自动识别。
+
+**我的文档会进模型上下文吗？**
+不会。上传文件，返回一个路径。40 页的论文不消耗任何 token。
 
 ## 相关链接
 

@@ -1,15 +1,19 @@
 # humanpen-skill
 
-**Give Claude Code the ability to work on real documents.** A skill that lets an
-agent take a `.docx`, `.pptx` or `.pdf` on disk and lower its AI-detection
+**Give your AI agent the ability to work on real documents.** An
+[Agent Skill](https://agentskills.io) for [HumanPen](https://humanpen.net).
+Point Claude Code, Codex, Cursor, Gemini CLI or any of 40+ other clients at a
+`.docx`, `.pptx` or `.pdf` on disk, and it can lower the file's AI-detection
 score, convert its citations to another style, condense it to a word budget, or
-translate it — with formatting, tables, images, citations and formulas intact.
+translate it — formatting, tables, images, citations and formulas intact.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-skill-D97757.svg)](https://claude.com/claude-code)
+[![Agent Skill](https://img.shields.io/badge/Agent_Skills-open_standard-6E56CF.svg)](https://agentskills.io)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.8-3776AB.svg)](https://python.org)
 
 English · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
+
+[Website](https://humanpen.net) · [Pricing](https://humanpen.net/pricing) · [Developer docs](https://humanpen.net/developers)
 
 ```
 /plugin marketplace add humanpen/humanpen-skill
@@ -46,10 +50,9 @@ assembling HTTP calls and writing its own polling loop each time.
 
 ## Get a key
 
-Create one at <https://humanpen.net/settings>. New accounts get 100 free
-credits — enough for a 1,000-word document. Pricing is 100 credits per 1,000
-words actually processed, 10 credits minimum per job. **Failed and cancelled
-jobs cost nothing.**
+Sign up at <https://humanpen.net> and create a key at
+<https://humanpen.net/settings/api-keys>. New accounts start with free credits,
+enough to put a document through and see what comes back.
 
 ```bash
 export HUMANPEN_API_KEY=hp_your_key
@@ -79,20 +82,27 @@ Project-scoped instead? Clone into `.claude/skills/humanpen` in the repo.
 </details>
 
 <details>
-<summary><b>OpenAI Codex, and any agent that reads AGENTS.md</b></summary>
+<summary><b>OpenAI Codex</b></summary>
 
-Codex has no skill loader, so tell it about the script directly. Clone
-anywhere, then add to your project's `AGENTS.md`:
-
-```markdown
-## HumanPen
-Document processing — lower AI-detection score, fix citations, condense,
-translate — via `python3 /path/to/humanpen-skill/scripts/humanpen.py --help`.
-Needs HUMANPEN_API_KEY in the environment. Each job costs credits — 100 per
-1,000 words processed, 10 minimum: say so and wait for my go-ahead.
+```bash
+git clone https://github.com/humanpen/humanpen-skill ~/.agents/skills/humanpen
 ```
 
-The commands are identical; only the way the agent is told about them differs.
+Codex also reads `.agents/skills/` inside a repository, if you would rather
+scope it to one project.
+</details>
+
+<details>
+<summary><b>Cursor, Gemini CLI, OpenCode, Copilot, Goose, Amp, Kiro, and 35+ more</b></summary>
+
+This is a plain [Agent Skill](https://agentskills.io): a folder with a
+`SKILL.md` in it. Every client that implements the standard loads the same
+folder — only the directory it scans differs, and each documents its own. Clone
+the repository into that directory and the skill is installed.
+
+```bash
+git clone https://github.com/humanpen/humanpen-skill
+```
 </details>
 
 Prefer an MCP server? [humanpen-mcp](https://github.com/humanpen/humanpen-mcp)
@@ -136,9 +146,23 @@ GB/T 7714, AMA, ACS, OSCOLA. Translation covers 12 languages.
 **Jobs take minutes.** The command waits, printing progress to stderr.
 Interrupting it does not cancel the job — `status <job_id>` picks it back up.
 
-**`ai_percent` can be `null`, and `null` is not zero.** A report prints `*`
-instead of a number when the submission is too short to assess. Reporting that
-as "0% AI" would be a claim nobody made.
+**`ai_percent` can be `null`, and that is usually good news.** Turnitin prints
+`*` instead of a number whenever AI writing comes in **under 20%** — it will not
+quantify that band, because too much of it is false positives. So `null` means
+"under 20%, and Turnitin will say no more", never "0%" and never "no result".
+
+## Questions people ask
+
+**Will this bring a Turnitin AI score down?**
+Usually under 20% in one pass with `balanced` — the threshold below which
+Turnitin prints `*` instead of a number. If it misses, run the result back
+through with the new report; only the passages still flagged get rewritten.
+
+**Does it work with iThenticate too?**
+Yes — pass either report. The format is read from the file.
+
+**Is my document sent to the model?**
+No. It uploads the file and prints a path. A 40-page paper costs no tokens.
 
 ## Links
 

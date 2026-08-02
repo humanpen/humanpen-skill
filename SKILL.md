@@ -18,7 +18,7 @@ costs 100 credits, charged only on the words actually processed, with a
 ## Setup
 
 ```bash
-export HUMANPEN_API_KEY=hp_...   # create one at https://humanpen.net/settings
+export HUMANPEN_API_KEY=hp_...   # create one at https://humanpen.net/settings/api-keys
 ```
 
 New accounts get 100 free credits at https://humanpen.net. Without a key
@@ -53,7 +53,7 @@ python3 scripts/humanpen.py balance
 ```
 
 `--help` on any command lists its flags. Add `-o PATH` to choose where the
-result lands; the default is `<name>-humanized.docx` beside the source.
+result lands; the default is `<name>-polished.docx` beside the source.
 
 ## Reading the output
 
@@ -67,7 +67,7 @@ A finished job prints JSON:
   "credits_charged": 118,
   "source_words": 1180,
   "result_words": 1150,
-  "output": "/path/paper-humanized.docx"
+  "output": "/path/paper-polished.docx"
 }
 ```
 
@@ -76,8 +76,10 @@ produced file back to summarise it unless asked - it is a full document, and
 the point of the path is that its contents stay out of the conversation.
 
 `report` prints `ai_percent` as a number, or `null` when the report shows
-`*` (too little text to assess) or states no figure. **`null` is not zero** -
-it means no measurement, so never report it as "0% AI".
+`*` or states no figure. Turnitin prints `*` whenever AI writing is **under
+20%** - it will not quantify that band because of false positives - so `null`
+is usually good news, not a missing result. **It is never zero**: report it as
+"under 20%, which is where Turnitin stops printing a number", never as "0% AI".
 
 ## Notes worth knowing
 

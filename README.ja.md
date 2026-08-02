@@ -1,15 +1,18 @@
 # humanpen-skill
 
-**Claude Code に、実際の文書を扱う力を。** ディスク上の `.docx` / `.pptx` /
-`.pdf` をエージェントが直接処理できるようにするスキルです。AI 検出スコアの低減、
-引用形式の変換、指定字数への要約、翻訳——レイアウト、表、画像、引用、数式は
-そのまま保たれます。
+**AI エージェントに、実際の文書を扱う力を。**
+[HumanPen](https://humanpen.net) の [Agent Skill](https://agentskills.io) です。
+Claude Code、Codex、Cursor、Gemini CLI ほか 40 以上のクライアントから、ディスク上の
+`.docx` / `.pptx` / `.pdf` を直接処理できます。AI 検出スコアの低減、引用形式の変換、
+指定字数への要約、翻訳——レイアウト、表、画像、引用、数式はそのまま保たれます。
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-skill-D97757.svg)](https://claude.com/claude-code)
+[![Agent Skill](https://img.shields.io/badge/Agent_Skills-open_standard-6E56CF.svg)](https://agentskills.io)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.8-3776AB.svg)](https://python.org)
 
 [English](README.md) · [简体中文](README.zh-CN.md) · 日本語
+
+[公式サイト](https://humanpen.net) · [料金](https://humanpen.net/pricing) · [開発者ドキュメント](https://humanpen.net/developers)
 
 ```
 /plugin marketplace add humanpen/humanpen-skill
@@ -48,10 +51,9 @@
 
 ## API キーの取得
 
-<https://humanpen.net/settings> で作成できます。新規アカウントには 100
-クレジット（1,000 語程度の文書 1 本分）が付きます。料金は**実際に処理された**
-1,000 語あたり 100 クレジット、1 ジョブの最低額は 10 クレジットです。
-**失敗・キャンセルしたジョブは課金されません。**
+<https://humanpen.net> で登録し、<https://humanpen.net/settings/api-keys> で
+キーを作成します。新規アカウントには無料クレジットが付くので、文書を 1 本
+通して結果を確かめられます。
 
 ```bash
 export HUMANPEN_API_KEY=hp_your_key
@@ -83,20 +85,27 @@ git clone https://github.com/humanpen/humanpen-skill ~/.claude/skills/humanpen
 </details>
 
 <details>
-<summary><b>OpenAI Codex、および AGENTS.md を読むエージェント全般</b></summary>
+<summary><b>OpenAI Codex</b></summary>
 
-Codex にはスキルローダーがないため、スクリプトを直接伝えます。任意の場所に
-クローンし、プロジェクトの `AGENTS.md` に次を追記してください：
-
-```markdown
-## HumanPen
-文書処理（AI 検出スコア低減、引用形式変換、要約、翻訳）は
-`python3 /path/to/humanpen-skill/scripts/humanpen.py --help` から。
-環境変数 HUMANPEN_API_KEY が必要。各ジョブはクレジットを消費する——実処理
-1,000 語あたり 100、最低 10。必ず伝えてから、私の承認を待つこと。
+```bash
+git clone https://github.com/humanpen/humanpen-skill ~/.agents/skills/humanpen
 ```
 
-コマンドは同一で、違うのは「エージェントへの伝え方」だけです。
+Codex はリポジトリ内の `.agents/skills/` も読みます。プロジェクト単位で使う
+場合はそちらへ。
+</details>
+
+<details>
+<summary><b>Cursor、Gemini CLI、OpenCode、Copilot、Goose、Amp、Kiro ほか 35 以上</b></summary>
+
+これは標準的な [Agent Skill](https://agentskills.io)——`SKILL.md` を含むただの
+フォルダです。標準に対応したクライアントはすべて同じフォルダを読み込み、違いは
+走査するディレクトリだけで、各製品のドキュメントに記載されています。そのディレクトリ
+にクローンすればインストール完了です。
+
+```bash
+git clone https://github.com/humanpen/humanpen-skill
+```
 </details>
 
 MCP サーバーの方がよい場合は
@@ -140,9 +149,24 @@ GB/T 7714、AMA、ACS、OSCOLA。翻訳は 12 言語に対応します。
 **ジョブは分単位です。** コマンドは待機し、進捗を stderr に出力します。コマンドを
 中断してもジョブはキャンセルされません——`status <job_id>` で再び拾えます。
 
-**`ai_percent` は `null` になりえます。そして `null` は 0 ではありません。**
-提出文が短すぎて評価できない場合、レポートは数値ではなく `*` を出力します。
-これを「AI 率 0%」と報告するのは、誰もしていない主張をすることになります。
+**`ai_percent` が `null` になるのは、多くの場合よい知らせです。** AI 検出率が
+**20% を下回る**とき、Turnitin は数値ではなく `*` を出力します。その帯域は
+誤検出が多すぎるため、数値を出さない方針だからです。つまり `null` は「20% 未満、
+Turnitin はそれ以上言わない」であって、0 でも「結果なし」でもありません。
+
+## よくある質問
+
+**Turnitin の AI 率は下がりますか。**
+`balanced` なら通常 1 回で 20% 未満——Turnitin が数値をやめて `*` を出す境目——
+まで下がります。届かなければ、結果と新しいレポートをもう一度渡せば、まだ指摘の
+ある箇所だけが書き直されます。
+
+**iThenticate のレポートにも対応していますか。**
+はい。どちらも渡せます。形式はファイルから判別します。
+
+**文書はモデルのコンテキストに送られますか。**
+いいえ。ファイルをアップロードし、パスを返すだけです。40 ページの論文でも
+トークンは消費しません。
 
 ## リンク
 

@@ -30,7 +30,7 @@ from urllib import error, request
 
 DEFAULT_BASE_URL = 'https://api.humanpen.net/v1'
 SIGNUP_URL = 'https://humanpen.net'
-KEYS_URL = 'https://humanpen.net/settings'
+KEYS_URL = 'https://humanpen.net/settings/api-keys'
 
 # Jobs run for minutes, so poll gently and back off - the API asks for this
 # and a tight loop only burns rate limit.
