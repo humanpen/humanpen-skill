@@ -85,6 +85,16 @@ Codex 也会读仓库里的 `.agents/skills/`，想只在某个项目里用就�
 </details>
 
 <details>
+<summary><b>CodeBuddy / WorkBuddy</b></summary>
+
+```bash
+git clone https://github.com/humanpen/humanpen-skill ~/.codebuddy/skills/humanpen
+```
+
+想只在某个项目里用，就克隆到项目根的 `.codebuddy/skills/humanpen`。
+</details>
+
+<details>
 <summary><b>Cursor、Gemini CLI、OpenCode、Copilot、Goose、Amp、Kiro 等 35+ 客户端</b></summary>
 
 这就是一个标准的 [Agent Skill](https://agentskills.io)：一个装着 `SKILL.md` 的
@@ -125,7 +135,7 @@ python3 scripts/humanpen.py status <job_id> --download paper.docx
 python3 scripts/humanpen.py balance
 ```
 
-任务完成后会打印 JSON，其中 `output` 是文件落点、`credits_charged` 是花费。
+任务完成后会打印 JSON，其中 `output` 是保存路径、`credits_charged` 是花费。
 任何子命令加 `--help` 都能看到它的参数。
 
 支持的引文格式：APA 7、MLA 9、Harvard、Chicago（两种）、IEEE、Vancouver、

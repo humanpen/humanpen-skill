@@ -93,6 +93,16 @@ scope it to one project.
 </details>
 
 <details>
+<summary><b>CodeBuddy / WorkBuddy</b></summary>
+
+```bash
+git clone https://github.com/humanpen/humanpen-skill ~/.codebuddy/skills/humanpen
+```
+
+Project-scoped: clone into `.codebuddy/skills/humanpen` at the project root.
+</details>
+
+<details>
 <summary><b>Cursor, Gemini CLI, OpenCode, Copilot, Goose, Amp, Kiro, and 35+ more</b></summary>
 
 This is a plain [Agent Skill](https://agentskills.io): a folder with a

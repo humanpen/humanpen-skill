@@ -96,6 +96,16 @@ Codex はリポジトリ内の `.agents/skills/` も読みます。プロジェ�
 </details>
 
 <details>
+<summary><b>CodeBuddy / WorkBuddy</b></summary>
+
+```bash
+git clone https://github.com/humanpen/humanpen-skill ~/.codebuddy/skills/humanpen
+```
+
+プロジェクト単位で使う場合は、プロジェクト直下の `.codebuddy/skills/humanpen` へ。
+</details>
+
+<details>
 <summary><b>Cursor、Gemini CLI、OpenCode、Copilot、Goose、Amp、Kiro ほか 35 以上</b></summary>
 
 これは標準的な [Agent Skill](https://agentskills.io)——`SKILL.md` を含むただの
@@ -150,7 +160,7 @@ GB/T 7714、AMA、ACS、OSCOLA。翻訳は 12 言語に対応します。
 中断してもジョブはキャンセルされません——`status <job_id>` で再び拾えます。
 
 **`ai_percent` が `null` になるのは、多くの場合よい知らせです。** AI 検出率が
-**20% を下回る**とき、Turnitin は数値ではなく `*` を出力します。その帯域は
+**20% を下回る**とき、Turnitin は数値ではなく `*` を出力します。その区間は
 誤検出が多すぎるため、数値を出さない方針だからです。つまり `null` は「20% 未満、
 Turnitin はそれ以上言わない」であって、0 でも「結果なし」でもありません。
 
