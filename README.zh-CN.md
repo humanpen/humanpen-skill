@@ -112,7 +112,7 @@ git clone https://github.com/humanpen/humanpen-skill
 ## 命令
 
 ```bash
-# 降低 AI 检测特征。--strategy 可选：conservative | balanced | aggressive
+# 降低 AI 检测特征。--strategy 可选：balanced | aggressive
 python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 
 # 只重写检测报告标出的段落

@@ -347,8 +347,7 @@ def build_parser() -> argparse.ArgumentParser:
     humanize = add_job_flags(subparsers.add_parser(
         'humanize', help='reduce AI-detection signals, keeping meaning and formatting'))
     humanize.add_argument('--strategy', default='balanced',
-                          choices=['conservative', 'balanced', 'aggressive',
-                                   'balanced_v2', 'aggressive_v2'],
+                          choices=['balanced', 'aggressive'],
                           help='rewriting intensity (default: balanced)')
     humanize.add_argument('--report', help='Turnitin/iThenticate AI report PDF; only its '
                                            'flagged passages are rewritten')

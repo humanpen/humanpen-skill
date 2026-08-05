@@ -29,7 +29,7 @@ every command fails with instructions to get one.
 Run them from this skill's directory; `python3` and nothing else is needed.
 
 ```bash
-# Lower AI-detection signals. --strategy: conservative | balanced | aggressive
+# Lower AI-detection signals. --strategy: balanced | aggressive
 python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 
 # Rewrite only the passages a detection report flagged, leaving the rest alone

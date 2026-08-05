@@ -125,7 +125,7 @@ Cursor、Windsurf、Cline、OpenCode、Claude Desktop でも動作します。
 ## コマンド
 
 ```bash
-# AI 検出の特徴を弱める。--strategy: conservative | balanced | aggressive
+# AI 検出の特徴を弱める。--strategy: balanced | aggressive
 python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 
 # 検出レポートが指摘した箇所だけを書き直す

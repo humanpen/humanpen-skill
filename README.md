@@ -122,7 +122,7 @@ OpenCode and Claude Desktop as well.
 ## Commands
 
 ```bash
-# Lower AI-detection signals. --strategy: conservative | balanced | aggressive
+# Lower AI-detection signals. --strategy: balanced | aggressive
 python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 
 # Rewrite only the passages a detection report flagged
