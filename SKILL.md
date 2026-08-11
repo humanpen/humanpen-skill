@@ -35,6 +35,12 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 # Rewrite only the passages a detection report flagged, leaving the rest alone
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 
+# Constrain length. EXPERIMENTAL - a word limit noticeably weakens AI-rate
+# reduction, so skip it unless a length is required. Whole document:
+python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
+# Per-passage: bound only the report's flagged passages (texts from `report`)
+python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
+
 # Citations and the reference list to one style
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 

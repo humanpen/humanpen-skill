@@ -131,6 +131,11 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 # 検出レポートが指摘した箇所だけを書き直す
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 
+# 文字数を制限（試験的機能——文字数の制限は AI 率低減の効果を弱めます）。
+# 全体の範囲、またはレポートが指摘した段落ごとの範囲：
+python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
+python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
+
 # 文中引用と参考文献一覧を指定の形式へ
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 

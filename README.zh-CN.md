@@ -118,6 +118,10 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 # 只重写检测报告标出的段落
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 
+# 限定篇幅（试验功能——限定字数会削弱降 AI 效果）。整篇区间，或对报告标出的段落逐段设区间：
+python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
+python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
+
 # 文内引用与参考文献列表转成指定格式
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 

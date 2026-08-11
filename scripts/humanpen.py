@@ -265,12 +265,63 @@ def run_operation(operation: str, args, fields: dict) -> int:
     return 0
 
 
+def _load_segments_file(path: str) -> str:
+    """Load a per-passage word-budget JSON file into the API's segments field.
+
+    The file is a JSON array of {text, min_words?, max_words?}; this maps those
+    user-facing names onto the API's {text, word_min?, word_max?} and returns the
+    JSON string the multipart ``segments`` field expects. Validated here so a bad
+    file fails before the upload, not after a charge.
+    """
+
+    source = Path(path).expanduser()
+    if not source.is_file():
+        raise HumanPenError(f'no such segments file: {source}', code='FILE_NOT_FOUND')
+    try:
+        items = json.loads(source.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as exc:
+        raise HumanPenError(f'segments file is not valid JSON: {exc}', code='INVALID_SEGMENTS') from exc
+    if not isinstance(items, list) or not items:
+        raise HumanPenError('segments file must be a non-empty JSON array', code='INVALID_SEGMENTS')
+    segments: list[dict] = []
+    for item in items:
+        if not isinstance(item, dict) or not str(item.get('text', '')).strip():
+            raise HumanPenError('each segment needs a non-empty "text"', code='INVALID_SEGMENTS')
+        segment: dict = {'text': item['text']}
+        if item.get('min_words') is not None:
+            segment['word_min'] = item['min_words']
+        if item.get('max_words') is not None:
+            segment['word_max'] = item['max_words']
+        segments.append(segment)
+    return json.dumps(segments, ensure_ascii=False)
+
+
 def cmd_humanize(args) -> int:
-    return run_operation('humanize', args, {
+    whole_band = args.min_words is not None or args.max_words is not None
+    # The whole-document band and the per-passage paths (a report, or a segments
+    # file) scope the job to different things, and the API forbids the mix - it
+    # would charge before mismatching. Per-passage limits ride on --segments-file,
+    # which does combine with --report (the report's passages are their scope).
+    if whole_band and args.report:
+        raise HumanPenError(
+            '--min-words/--max-words target the whole document and cannot combine with --report, '
+            'which rewrites only the flagged passages. For per-passage limits use --segments-file.',
+            code='INVALID_WORD_BUDGET')
+    if whole_band and args.segments_file:
+        raise HumanPenError(
+            '--min-words/--max-words target the whole document and cannot combine with --segments-file, '
+            'which carries its own per-passage limits. Use one or the other.',
+            code='INVALID_WORD_BUDGET')
+    fields = {
         'strategy': args.strategy,
         'additional_instructions': args.instructions,
         '_report_path': args.report,
-    })
+        'word_min': args.min_words,
+        'word_max': args.max_words,
+    }
+    if args.segments_file:
+        fields['segments'] = _load_segments_file(args.segments_file)
+    return run_operation('humanize', args, fields)
 
 
 def cmd_citations(args) -> int:
@@ -352,6 +403,18 @@ def build_parser() -> argparse.ArgumentParser:
     humanize.add_argument('--report', help='Turnitin/iThenticate AI report PDF; only its '
                                            'flagged passages are rewritten')
     humanize.add_argument('--instructions', help='extra requirements for this job')
+    humanize.add_argument('--min-words', dest='min_words', type=int, metavar='N',
+                          help='whole-document lower word bound (optional). EXPERIMENTAL: a word limit '
+                               'noticeably weakens AI-rate reduction, so omit unless a length is required. '
+                               'Not with --report or --segments-file')
+    humanize.add_argument('--max-words', dest='max_words', type=int, metavar='N',
+                          help='whole-document upper word bound (optional). Same caveat and exclusivity '
+                               'as --min-words')
+    humanize.add_argument('--segments-file', dest='segments_file', metavar='PATH',
+                          help='JSON file for per-passage word control: a list of '
+                               '{"text": ..., "min_words": N, "max_words": N}. Get the passage texts from '
+                               'the `report` command and pass --report alongside so it defines scope. '
+                               'EXPERIMENTAL (see --min-words). Not with --min-words/--max-words')
     humanize.set_defaults(func=cmd_humanize)
 
     citations = add_job_flags(subparsers.add_parser(
