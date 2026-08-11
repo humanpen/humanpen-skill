@@ -136,6 +136,9 @@ python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
 
+# 完了済みジョブを無料で続行（ジョブごとに1回）：その結果の新しいレポートで、まだ指摘された箇所だけを再実行
+python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
+
 # 文中引用と参考文献一覧を指定の形式へ
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 

@@ -41,6 +41,10 @@ python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 180
 # Per-passage: bound only the report's flagged passages (texts from `report`)
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
 
+# Continue a finished job for FREE (once per job): re-run its still-flagged
+# passages with a fresh report for that job's result. Pass the job_id humanize returned.
+python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
+
 # Citations and the reference list to one style
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 
@@ -95,7 +99,8 @@ is usually good news, not a missing result. **It is never zero**: report it as
   Interrupting it does not cancel the job - `status <job_id>` picks it back up.
 - **Failures cost nothing.** A job that errors or is cancelled is charged 0.
 - **Result files are kept 7 days**, then deleted; the job record stays.
-- **A second pass is the plan, not a failure.** If a detector still flags the
-  result, humanize the rewritten file again with its new report via `--report`:
-  only the passages still marked get rewritten, and the rest stays put. Keep
-  `balanced` for the second pass too - no need to escalate to `aggressive`.
+- **A second pass is the plan, not a failure - and it is free.** If a detector
+  still flags the result, run `free-rehumanize <job_id>` with a fresh report for
+  that result: only the still-flagged passages are rewritten, at no credit cost
+  (once per job, with a daily cap; the report must match that result). Keep
+  `balanced` - no need to escalate to `aggressive`.

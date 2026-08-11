@@ -167,6 +167,19 @@ def create_job(operation: str, document: str, fields: dict) -> dict:
     return _request('POST', f'/jobs/{operation}', body=body, content_type=header)
 
 
+def create_free_rehumanize_job(parent_job_id: str, report_path: str, fields: dict) -> dict:
+    """Submit a free re-humanize continuation and return the receipt.
+
+    No source document is uploaded - the server clones the parent job's result -
+    so only the fresh report and optional fields ride along, POSTed to the
+    parent's free-rehumanize endpoint. Eligibility is entirely the server's.
+    """
+    report_name, report_payload, _ = _read_document(report_path)
+    files = {'turnitin_file': (report_name, report_payload, 'application/pdf')}
+    body, header = _encode_multipart(fields, files)
+    return _request('POST', f'/jobs/{parent_job_id}/free-rehumanize', body=body, content_type=header)
+
+
 def wait_for_job(job_id: str, *, timeout_seconds: float, quiet: bool = False) -> dict:
     """Poll until the job reaches a terminal state.
 
@@ -244,10 +257,15 @@ def report_job(job: dict, output: Path | None) -> None:
     }, ensure_ascii=False, indent=2))
 
 
-def run_operation(operation: str, args, fields: dict) -> int:
-    """Submit, wait, download, report - the whole job in one call."""
+def _await_and_report(receipt: dict, args, anchor: str) -> int:
+    """Wait for a submitted job, download its result, and report.
 
-    receipt = create_job(operation, args.document, fields)
+    Shared by the upload operations and the free re-humanize continuation. The
+    ``anchor`` is the local file the result is named beside when no -o is given:
+    the source document for uploads, or the report for a free re-humanize (which
+    uploads no document).
+    """
+
     print(f'job {receipt["job_id"]} created, {receipt["credits_frozen"]} credits reserved',
           file=sys.stderr)
     if args.no_wait:
@@ -260,9 +278,15 @@ def run_operation(operation: str, args, fields: dict) -> int:
             f'job {job.get("status")}: {failure.get("message") or "no detail"}',
             code=str(failure.get('code') or ''),
         )
-    output = download_result(job, args.document, args.output)
+    output = download_result(job, anchor, args.output)
     report_job(job, output)
     return 0
+
+
+def run_operation(operation: str, args, fields: dict) -> int:
+    """Submit, wait, download, report - the whole job in one call."""
+
+    return _await_and_report(create_job(operation, args.document, fields), args, args.document)
 
 
 def _load_segments_file(path: str) -> str:
@@ -322,6 +346,17 @@ def cmd_humanize(args) -> int:
     if args.segments_file:
         fields['segments'] = _load_segments_file(args.segments_file)
     return run_operation('humanize', args, fields)
+
+
+def cmd_free_rehumanize(args) -> int:
+    fields = {
+        'strategy': args.strategy,
+        'additional_instructions': args.instructions,
+    }
+    if args.segments_file:
+        fields['segments'] = _load_segments_file(args.segments_file)
+    receipt = create_free_rehumanize_job(args.job_id, args.report, fields)
+    return _await_and_report(receipt, args, args.report)
 
 
 def cmd_citations(args) -> int:
@@ -416,6 +451,26 @@ def build_parser() -> argparse.ArgumentParser:
                                'the `report` command and pass --report alongside so it defines scope. '
                                'EXPERIMENTAL (see --min-words). Not with --min-words/--max-words')
     humanize.set_defaults(func=cmd_humanize)
+
+    free_rehumanize = subparsers.add_parser(
+        'free-rehumanize',
+        help='continue a finished humanize job for free: re-run its still-flagged passages with a new report')
+    free_rehumanize.add_argument('job_id', help='the finished humanize job to continue (its job_id)')
+    free_rehumanize.add_argument('--report', required=True,
+                                 help="fresh Turnitin/iThenticate report PDF for that job's result; only its "
+                                      'still-flagged passages are rewritten, at no credit cost')
+    free_rehumanize.add_argument('--strategy', default='balanced', choices=['balanced', 'aggressive'],
+                                 help='rewriting intensity (default: balanced, recommended for a continuation)')
+    free_rehumanize.add_argument('--segments-file', dest='segments_file', metavar='PATH',
+                                 help='JSON file for per-passage word control on the flagged passages: a list '
+                                      'of {"text": ..., "min_words": N, "max_words": N}')
+    free_rehumanize.add_argument('--instructions', help='extra requirements for this job')
+    free_rehumanize.add_argument('-o', '--output', help='where to write the result (default: beside the report)')
+    free_rehumanize.add_argument('--timeout', type=float, default=DEFAULT_TIMEOUT_SECONDS,
+                                 help='seconds to wait before giving up on the job')
+    free_rehumanize.add_argument('--no-wait', action='store_true',
+                                 help='submit and print the receipt without waiting')
+    free_rehumanize.set_defaults(func=cmd_free_rehumanize)
 
     citations = add_job_flags(subparsers.add_parser(
         'fix-citations', help='convert in-text citations and the reference list to one style'))

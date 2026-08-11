@@ -122,6 +122,9 @@ python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
 
+# 对已完成任务免费继续降一次（每个任务一次）：用该任务结果的新报告，只重跑仍标红的片段
+python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
+
 # 文内引用与参考文献列表转成指定格式
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 

@@ -133,6 +133,10 @@ python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments-file budgets.json
 
+# Continue a finished job for FREE (once per job): re-run its still-flagged
+# passages with a fresh report for that job's result
+python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
+
 # Citations and reference list to one style
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 
