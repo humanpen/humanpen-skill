@@ -1,11 +1,5 @@
 # humanpen-skill
 
-**让你的 AI Agent 真正会处理文档。** [HumanPen](https://humanpen.net) 的
-[Agent Skill](https://agentskills.io)。让 Claude Code、Codex、Cursor、Gemini CLI
-等 40 多个客户端直接对硬盘上的 `.docx`、`.pptx`、`.pdf` 动手：降低 AI 检测率、
-转换参考文献格式、按字数缩写、或者翻译——排版、表格、图片、引文和公式全部保持
-原样。
-
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent_Skills-open_standard-6E56CF.svg)](https://agentskills.io)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.8-3776AB.svg)](https://python.org)
@@ -14,33 +8,26 @@
 
 [官网](https://humanpen.net) · [价格](https://humanpen.net/pricing) · [开发者文档](https://humanpen.net/developers)
 
+> **关键词：** 降AI, AI降重, AI humanizer, Agent Skill, Turnitin AI检测, 降低AI率, AIGC检测, AI改写工具, DOCX降AI, Claude Code Skill, Codex Skill
+
+**哪里标红改哪里，保留格式降 AI。** [HumanPen](https://humanpen.net) 的 [Agent Skill](https://agentskills.io)——文档级 AI humanizer，支持全文降 AI，也支持自定义修改片段，还可基于 Turnitin/iThenticate AI 率检测报告自动指定修改片段，定点改写 `.docx` / `.pptx` 中被标记的文本，同时原样保留排版、表格、图片、引文、公式等。另支持 12 种引用格式转换、按目标字数缩写、12 种语言互译。
+
 ```
 /plugin marketplace add humanpen/humanpen-skill
 /plugin install humanpen@humanpen
 ```
 
-> *「这是我的论文和 Turnitin 报告——只改被标红的部分，然后把参考文献转成 IEEE 格式。」*
->
-> Agent 读报告、只重写被标出的段落、转换引文格式，最后把两个文件路径交给你。
-> 整个过程它没有读过论文正文。
+## 功能特性
 
-## 为什么不直接把文字贴进对话
-
-**它处理的是文件本身，不是文字的副本。** 把一章贴进对话，回来的是一段散文——
-标题层级没了、表格没了、图表编号没了、参考文献列表没了、公式没了。HumanPen 改的
-是文档本身、返回的也是文档，产出用 Word 打开还是原来的样子。
-
-**文档内容不进入模型上下文。** 脚本从硬盘读文件、上传、然后只打印一个写好的
-路径。一篇 40 页的论文不消耗你任何 token，也不会被抄进对话记录里。
-
-**可以由检测报告来指挥。** 把 Turnitin 或 iThenticate 的 AI Writing 报告 PDF 一并
-给它，它就**只**重写报告标出的那些段落，其余部分逐字节不动。为了改四分之一的
-内容而重写整篇，正是引文和原意被破坏的原因。
-
-**一条命令 = 一个完整任务。** 上传、等待、下载、存到源文件旁边——Agent 跑一条
-命令、读回一个路径和一笔花费，而不是每次自己拼 HTTP 请求、自己写轮询循环。
-
-**没有依赖要装。** 一个 Python 脚本，只用标准库，Python 3.8+ 即可。
+- **精准定位改写范围** — 导入 Turnitin / iThenticate AI Writing Report 自动定位标红段落；未标记的内容不进入改写范围
+- **原格式进、原格式出** — DOCX 处理后仍是 DOCX，PPTX 处理后仍是 PPTX，排版、表格、图片、公式原样保留，结果可继续编辑
+- **保护学术结构** — 文内引用、参考文献、脚注、目录域、交叉引用、图表编号、公式和特殊排版被识别为重点保护对象
+- **不靠制造错误降 AI** — 通过理解语义和重构句法改变表达，不把语法错误、拼写错误或生硬句子作为策略
+- **完整处理长文** — 没有单次输入词数上限，单文件可达 100 MB，不必手工拆成多个文本框
+- **文档不进模型上下文** — 上传文件、返回路径，40 页论文不消耗 token，不进对话记录
+- **一条命令，完整交付** — 上传、等待、下载、存到源文件旁边，不用自己拼 HTTP 请求、写轮询循环
+- **只按实际修改量计费** — 按改写词数扣费，不按全文；失败或取消不收费；积分不过期
+- **零依赖** — 一个 Python 脚本，只用标准库，Python 3.8+
 
 ## 获取 API Key
 

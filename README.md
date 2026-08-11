@@ -1,12 +1,5 @@
 # humanpen-skill
 
-**Give your AI agent the ability to work on real documents.** An
-[Agent Skill](https://agentskills.io) for [HumanPen](https://humanpen.net).
-Point Claude Code, Codex, Cursor, Gemini CLI or any of 40+ other clients at a
-`.docx`, `.pptx` or `.pdf` on disk, and it can lower the file's AI-detection
-score, convert its citations to another style, condense it to a word budget, or
-translate it — formatting, tables, images, citations and formulas intact.
-
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent_Skills-open_standard-6E56CF.svg)](https://agentskills.io)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.8-3776AB.svg)](https://python.org)
@@ -15,38 +8,26 @@ English · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
 [Website](https://humanpen.net) · [Pricing](https://humanpen.net/pricing) · [Developer docs](https://humanpen.net/developers)
 
+> **Keywords:** ai humanizer, agent skill, turnitin ai detection, reduce ai score, humanize ai text, bypass ai detection, docx ai humanizer, ai content rewriter, ai writing tool, claude code skill, codex skill, ithenticate ai report
+
+**Humanize the red. Preserve the rest.** An [Agent Skill](https://agentskills.io) for [HumanPen](https://humanpen.net) — a document-level AI humanizer that can humanize an entire document, rewrite user-selected passages, or automatically target flagged text from a Turnitin / iThenticate AI-detection report, editing `.docx` / `.pptx` files in place while preserving formatting, tables, images, citations, and formulas. Also converts citations between 12 styles, condenses to a word budget, and translates between 12 languages.
+
 ```
 /plugin marketplace add humanpen/humanpen-skill
 /plugin install humanpen@humanpen
 ```
 
-> *"Here's my thesis and the Turnitin report — rewrite just the flagged parts,
-> then put the references in IEEE style."*
->
-> The agent reads the report, rewrites only the passages it marked, converts the
-> citations, and hands back two file paths. It never had to read the thesis.
+## Features
 
-## Why this instead of pasting text into the chat
-
-**It works on the file, not on a copy of the text.** Paste a chapter into a chat
-and you get prose back — no headings, no tables, no figure numbering, no
-reference list, no equations. HumanPen edits the document itself and returns a
-document, so what comes out still opens in Word looking like what went in.
-
-**The document never enters the model's context.** The script reads the file
-from disk, uploads it, and prints the path it wrote. A 40-page paper costs you
-no tokens and is not copied into a transcript.
-
-**It can be guided by a detection report.** Give it the Turnitin or iThenticate
-AI Writing PDF and it rewrites *only* the passages that report flagged, leaving
-everything else byte-identical. Rewriting a whole document to fix a quarter of
-it is how citations and meaning get damaged.
-
-**One command is one finished job.** Upload, wait, download, saved next to the
-source — the agent runs a command and reads back a path and a cost, instead of
-assembling HTTP calls and writing its own polling loop each time.
-
-**Nothing to install.** One Python script, standard library only, Python 3.8+.
+- **Selective rewriting by detection report** — import a Turnitin / iThenticate AI Writing Report to pinpoint flagged passages; unflagged content is never touched
+- **Format in, format out** — a DOCX comes back as a DOCX, a PPTX as a PPTX; formatting, tables, images, and formulas survive intact and the result is still editable
+- **Academic structure preserved** — in-text citations, reference lists, footnotes, TOC fields, cross-references, figure numbering, equations, and special formatting are treated as protected objects
+- **No error injection** — restructures meaning and syntax to change expression; never adds grammar mistakes, spelling errors, or awkward sentences as a detection strategy
+- **Full-length documents** — no per-input word limit; a single file can be up to 100 MB, no splitting into text boxes
+- **Document stays off the context** — reads the file, uploads it, and prints the path; a 40-page paper costs no tokens and never enters a transcript
+- **One command, one finished job** — upload, wait, download, saved next to the source; no HTTP assembly or polling loops
+- **Pay per rewrite** — billed on words actually changed, not the whole document; failed and cancelled jobs cost nothing; credits never expire
+- **Nothing to install** — one Python script, standard library only, Python 3.8+
 
 ## Get a key
 
