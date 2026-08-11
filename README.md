@@ -24,8 +24,8 @@ English · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 - **Academic structure preserved** — in-text citations, reference lists, footnotes, TOC fields, cross-references, figure numbering, equations, and special formatting are treated as protected objects
 - **No error injection** — restructures meaning and syntax to change expression; never adds grammar mistakes, spelling errors, or awkward sentences as a detection strategy
 - **Full-length documents** — no per-input word limit; a single file can be up to 100 MB, no splitting into text boxes
-- **Document stays off the context** — reads the file, uploads it, and prints the path; a 40-page paper costs no tokens and never enters a transcript
-- **One command, one finished job** — upload, wait, download, saved next to the source; no HTTP assembly or polling loops
+- **Free to keep going** — still flagged? Re-humanize for free with a fresh report until you're satisfied
+- **Word-count control (experimental)** — set a min/max word range to keep the output within a target length
 - **Pay per rewrite** — billed on words actually changed, not the whole document; failed and cancelled jobs cost nothing; credits never expire
 - **Nothing to install** — one Python script, standard library only, Python 3.8+
 
