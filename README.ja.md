@@ -12,11 +12,6 @@
 
 **指摘された箇所だけ書き直す。フォーマットはそのまま。** [HumanPen](https://humanpen.net) の [Agent Skill](https://agentskills.io)——文書レベルの AI ヒューマナイザーです。文書全体の AI 率低減、ユーザー指定箇所の書き直し、Turnitin / iThenticate の AI 率検出レポートに基づく指摘箇所の自動特定と書き直しに対応し、`.docx` / `.pptx` のレイアウト、表、画像、引用、数式をそのまま保持します。12 種の引用形式変換、語数指定の要約、12 言語間の翻訳にも対応します。
 
-```
-/plugin marketplace add humanpen/humanpen-skill
-/plugin install humanpen@humanpen
-```
-
 ## 特長
 
 - **検出レポートで改写範囲を特定** — Turnitin / iThenticate の AI Writing レポートを読み込み、指摘された段落だけを書き直します。指摘のない部分は一切触れません

@@ -12,11 +12,6 @@
 
 **哪里标红改哪里，保留格式降 AI。** [HumanPen](https://humanpen.net) 的 [Agent Skill](https://agentskills.io)——文档级 AI humanizer，支持全文降 AI，也支持自定义修改片段，还可基于 Turnitin/iThenticate AI 率检测报告自动指定修改片段，定点改写 `.docx` / `.pptx` 中被标记的文本，同时原样保留排版、表格、图片、引文、公式等。另支持 12 种引用格式转换、按目标字数缩写、12 种语言互译。
 
-```
-/plugin marketplace add humanpen/humanpen-skill
-/plugin install humanpen@humanpen
-```
-
 ## 功能特性
 
 - **精准定位改写范围** — 导入 Turnitin / iThenticate AI Writing Report 自动定位标红段落；未标记的内容不进入改写范围

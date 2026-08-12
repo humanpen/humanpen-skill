@@ -12,11 +12,6 @@ English · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
 **Humanize what's flagged. Preserve the rest.** An [Agent Skill](https://agentskills.io) for [HumanPen](https://humanpen.net) — a document-level AI humanizer that can humanize an entire document, rewrite user-selected passages, or automatically target flagged text from a Turnitin / iThenticate AI-detection report, editing `.docx` / `.pptx` files in place while preserving formatting, tables, images, citations, and formulas. Also converts citations between 12 styles, condenses to a word budget, and translates between 12 languages.
 
-```
-/plugin marketplace add humanpen/humanpen-skill
-/plugin install humanpen@humanpen
-```
-
 ## Features
 
 - **Selective rewriting by detection report** — import a Turnitin / iThenticate AI Writing Report to pinpoint flagged passages; unflagged content is never touched
