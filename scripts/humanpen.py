@@ -439,12 +439,12 @@ def build_parser() -> argparse.ArgumentParser:
                                            'flagged passages are rewritten')
     humanize.add_argument('--instructions', help='extra requirements for this job')
     humanize.add_argument('--min-words', dest='min_words', type=int, metavar='N',
-                          help='whole-document lower word bound (optional). EXPERIMENTAL: a word limit '
-                               'noticeably weakens AI-rate reduction, so omit unless a length is required. '
-                               'Not with --report or --segments-file')
+                          help='lower word bound for the rewritten document (optional). EXPERIMENTAL: a word '
+                               'limit noticeably weakens AI-rate reduction, so omit unless a length is '
+                               'required. Not with --report or --segments-file')
     humanize.add_argument('--max-words', dest='max_words', type=int, metavar='N',
-                          help='whole-document upper word bound (optional). Same caveat and exclusivity '
-                               'as --min-words')
+                          help='upper word bound for the rewritten document (optional). Same caveat and '
+                               'exclusivity as --min-words')
     humanize.add_argument('--segments-file', dest='segments_file', metavar='PATH',
                           help='JSON file for per-passage word control: a list of '
                                '{"text": ..., "min_words": N, "max_words": N}. Get the passage texts from '
@@ -475,7 +475,9 @@ def build_parser() -> argparse.ArgumentParser:
     citations = add_job_flags(subparsers.add_parser(
         'fix-citations', help='convert in-text citations and the reference list to one style'))
     citations.add_argument('--style', required=True,
-                           help='target style, e.g. apa7, mla9, ieee, gbt7714')
+                           help='target style: apa7, mla9, harvard, chicago_author_date, '
+                                'chicago_notes, ieee, vancouver, gbt7714, '
+                                'gbt7714_author_year, ama, acs, oscola')
     citations.add_argument('--instructions', help='extra requirements for this job')
     citations.set_defaults(func=cmd_citations)
 
@@ -488,9 +490,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     translate = add_job_flags(subparsers.add_parser(
         'translate', help='translate a document, keeping its formatting'))
-    translate.add_argument('--to', required=True, help='target language, e.g. zh, en, ja')
+    translate.add_argument('--to', required=True,
+                           help='target language: zh, zh-tw, en, ja, ko, es, fr, pt, ru, de, pl, it')
     translate.add_argument('--source-lang', dest='source_lang', default='auto',
-                           help='source language (default: auto)')
+                           help='source language, same codes as --to (default: auto)')
     translate.set_defaults(func=cmd_translate)
 
     report = subparsers.add_parser(
