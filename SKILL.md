@@ -8,7 +8,7 @@ license: Apache-2.0
 
 A document-level AI humanizer. Point it at a document file and it uploads the file, waits for the job, and writes the result next to the source — you get a path back, **never the document's contents**. Formatting, tables, images, citations, and formulas survive intact.
 
-**Every job spends the account's credits. State the cost and get the user's agreement before running any job command.** 1,000 words costs 100 credits, charged only on the words actually processed, with a 10-credit minimum; failed or cancelled jobs cost nothing.
+**Every job spends the account's credits. State the cost and get the user's agreement before running any job command.** Per 1,000 words processed: humanize 100 credits, fix-citations 5, condense 20, translate 10, charged only on the words actually processed, with a 10-credit minimum per job; failed or cancelled jobs cost nothing.
 
 ## Setup
 
