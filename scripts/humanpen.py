@@ -14,6 +14,7 @@ installed.
     python humanpen.py humanize paper.docx --strategy balanced
     python humanpen.py translate paper.docx --to zh
     python humanpen.py report turnitin.pdf
+    python humanpen.py project start "What drives churn? A short report." --file sales.csv
 """
 
 from __future__ import annotations
@@ -412,12 +413,358 @@ def cmd_balance(args) -> int:
     return 0
 
 
+# ---------- research projects ----------
+#
+# A research project is a conversation with HumanPen's cloud agents rather than one job: they scope the request with
+# the user, quote a plan in credits, work, are reviewed and deliver files, and in between they wait on the user. So
+# these commands follow the API's own steps (start, show, wait, act, message, download) instead of hiding them: what
+# the agents ask and the plan they quote are the user's to answer.
+
+# A project with autonomy shows a wait for a few seconds before HumanPen answers it: `project wait` waits through it.
+AUTONOMY_GRACE_SECONDS = 30
+MESSAGE_CHARS = 1500
+
+
+def _json_request(method: str, path: str, body: dict | None = None, idempotent: bool = False) -> dict:
+    """A JSON call; `idempotent` sends an Idempotency-Key so the request is never done twice."""
+
+    req_body = json.dumps(body).encode('utf-8') if body is not None else None
+    url = f'{_base_url()}{path}'
+    req = request.Request(url, method=method, data=req_body)
+    req.add_header('Authorization', f'Bearer {_api_key()}')
+    req.add_header('User-Agent', 'humanpen-skill/1.0')
+    if req_body is not None:
+        req.add_header('Content-Type', 'application/json')
+    if idempotent:
+        req.add_header('Idempotency-Key', uuid.uuid4().hex)
+    try:
+        with request.urlopen(req, timeout=120) as response:
+            payload = json.loads(response.read())
+    except error.HTTPError as exc:
+        raw = exc.read()
+        try:
+            envelope = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            envelope = {}
+        code = str(envelope.get('code') or '')
+        message = str(envelope.get('message') or exc.reason or 'request failed')
+        if exc.code == 401:
+            message = f'{message} - check HUMANPEN_API_KEY, or create a key at {KEYS_URL}'
+        elif exc.code == 402:
+            message = f'{message} - top up at {SIGNUP_URL}/pricing'
+        elif exc.code == 403 and 'projects:' in message:
+            message = f'{message} - research projects need a key created with "Research projects" ticked, at {KEYS_URL}'
+        raise HumanPenError(f'HTTP {exc.code} {code}: {message}', code=code,
+                            retryable=exc.code == 429 or exc.code >= 500) from exc
+    except error.URLError as exc:
+        raise HumanPenError(f'cannot reach {url}: {exc.reason}', retryable=True) from exc
+    return payload.get('data', payload)
+
+
+def _local_files(paths: list[str]) -> list[dict]:
+    files = []
+    for text in paths or []:
+        path = Path(text).expanduser()
+        if not path.is_file():
+            raise HumanPenError(f'no such file: {path}', code='FILE_NOT_FOUND')
+        files.append({'name': path.name, 'size': path.stat().st_size, 'path': path})
+    names = [item['name'] for item in files]
+    repeated = {name for name in names if names.count(name) > 1}
+    if repeated:
+        raise HumanPenError(f'two files are named {sorted(repeated)[0]}; rename one', code='DUPLICATE_FILE_NAME')
+    return files
+
+
+def _put(url: str, data: bytes, headers: dict | None = None) -> str:
+    """PUT bytes to a signed URL (no Authorization: the URL is the credential); returns the ETag."""
+
+    req = request.Request(url, method='PUT', data=data)
+    for name, value in (headers or {}).items():
+        req.add_header(name, value)
+    try:
+        with request.urlopen(req, timeout=600) as response:
+            return response.headers.get('ETag') or ''
+    except (error.HTTPError, error.URLError) as exc:
+        raise HumanPenError(f'uploading failed: {exc}', code='UPLOAD_FAILED', retryable=True) from exc
+
+
+def _upload(project_id: str, uploads: list, files: list[dict]) -> list[str]:
+    """Send each file to its target (one PUT, or numbered parts of a large one), then tell the project."""
+
+    done = []
+    for upload in uploads or []:
+        local = next((item for item in files if item['name'] == upload.get('name')), None)
+        target = upload.get('target') or {}
+        if local is None:
+            raise HumanPenError(f"the API asked for a file not sent: {upload.get('name')}", code='UPLOAD_MISMATCH')
+        if target.get('method') == 'PUT':
+            _put(target['url'], local['path'].read_bytes(), target.get('headers'))
+            done.append({'name': local['name']})
+        elif target.get('method') == 'MULTIPART':
+            parts, size = [], int(target['part_size'])
+            with local['path'].open('rb') as handle:
+                for part in target['parts']:
+                    handle.seek((int(part['number']) - 1) * size)
+                    parts.append({'number': part['number'], 'etag': _put(part['url'], handle.read(size))})
+            done.append({'name': local['name'], 'upload_id': target['upload_id'], 'parts': parts})
+        else:
+            raise HumanPenError(f"unknown upload target for {upload.get('name')}", code='UPLOAD_MISMATCH')
+    if done:
+        _json_request('POST', f'/agent/projects/{project_id}/uploads/complete', {'files': done})
+    return [item['name'] for item in done]
+
+
+def _latest_events(project_id: str, types: str, keep: int) -> list:
+    """The latest few events of these types, reading the timeline from its start."""
+
+    after, kept = 0, []
+    for _ in range(20):
+        page = _json_request('GET', f'/agent/projects/{project_id}/events?after={after}&limit=500&types={types}')
+        kept = (kept + page.get('events', []))[-keep:]
+        if page.get('next_after', after) == after:
+            break
+        after = page['next_after']
+    return kept
+
+
+def _autonomy_will_answer(project: dict) -> bool:
+    """Whether HumanPen is about to answer this wait itself (the project's autonomy covers it)."""
+
+    autonomy, wait = project.get('autonomy') or {}, project.get('wait') or {}
+    if not autonomy or project.get('state') != 'input_required':
+        return False
+    if wait.get('reason') == 'plan' and autonomy.get('confirm_plan') == 'auto':
+        committed = (project.get('billing') or {}).get('committed_credits') or 0
+        estimate = project.get('estimate_credits')
+        return isinstance(estimate, int) and estimate <= autonomy.get('max_credits', 0) - committed
+    return wait.get('reason') == 'answers' and autonomy.get('answer') == 'recommended'
+
+
+def _describe(project: dict) -> dict:
+    """What an agent needs to tell the user and take the next step."""
+
+    wait = project.get('wait') or {}
+    spec = project.get('spec') or {}
+    picture = {
+        'project_id': project.get('id'), 'title': project.get('title'), 'state': project.get('state'),
+        'stage': project.get('stage'), 'waiting_for': wait.get('reason'), 'pause_id': wait.get('pause_id'),
+        'allowed_actions': project.get('allowed_actions'),
+        'now': (project.get('activity') or {}).get('description'),
+        'question': project.get('question'),
+        'delivered_version': project.get('delivered_version'),
+        'consumed_credits': project.get('consumed_credits', (project.get('billing') or {}).get('consumed_credits')),
+        'credit_cap': (project.get('autonomy') or {}).get('max_credits'),
+    }
+    if wait.get('reason') == 'plan':
+        picture['plan'] = {'spec_version': project.get('spec_version'), 'goal': spec.get('goal') or spec.get('title'),
+                           'deliverables': [item.get('path') or item.get('description')
+                                            for item in spec.get('deliverables') or []],
+                           'estimate_credits': project.get('estimate_credits'),
+                           'estimate_minutes': project.get('estimate_minutes')}
+    if wait.get('reason') == 'answers' and project.get('stage') == 'scoping':
+        asked = _latest_events(project['id'], 'intake.questions', 1)
+        picture['questions'] = asked[0]['data'].get('questions') if asked else None
+    if project.get('state') != 'working':
+        said = _latest_events(project['id'], 'agent.message', 1)
+        text = str(said[0]['data'].get('text') or '') if said else ''
+        picture['last_message'] = text[:MESSAGE_CHARS] + ('...' if len(text) > MESSAGE_CHARS else '')
+    return {key: value for key, value in picture.items() if value is not None}
+
+
+def _print(payload: dict) -> int:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_project_start(args) -> int:
+    files = _local_files(args.file)
+    body = {'files': [{'name': item['name'], 'size': item['size']} for item in files]}
+    if args.title:
+        body['title'] = args.title
+    if args.lang:
+        body['lang'] = args.lang
+    if args.max_credits:
+        body['autonomy'] = {'confirm_plan': 'auto' if args.auto_confirm else 'ask',
+                            'answer': 'recommended' if args.answer_recommended else 'ask',
+                            'max_credits': args.max_credits}
+    elif args.auto_confirm or args.answer_recommended:
+        raise HumanPenError('--auto-confirm and --answer-recommended need --max-credits, a cap the user agreed to',
+                            code='MAX_CREDITS_REQUIRED')
+    created = _json_request('POST', '/agent/projects', body, idempotent=True)
+    project_id = created['project']['id']
+    names = _upload(project_id, created.get('uploads'), files)
+    sent = _json_request('POST', f'/agent/projects/{project_id}/messages',
+                         {'text': args.request, **({'attachments': names} if names else {})}, idempotent=True)
+    return _print({'project_id': project_id, 'after_seq': sent.get('seq'), 'files': names,
+                   'next': f'project wait {project_id} --after {sent.get("seq")}'})
+
+
+def cmd_project_show(args) -> int:
+    return _print(_describe(_json_request('GET', f'/agent/projects/{args.project_id}')))
+
+
+def cmd_project_wait(args) -> int:
+    """Wait until the project needs the user or has finished (its state leaves working)."""
+
+    deadline = time.monotonic() + args.timeout
+    grace = None
+    after = args.after
+    delay = POLL_FIRST_SECONDS
+    while True:
+        if after is not None:
+            left = max(1, min(30, int(deadline - time.monotonic())))
+            page = _json_request('GET', f'/agent/projects/{args.project_id}/events?after={after}'
+                                        f'&types=project.state&wait={left}')
+            after = page.get('next_after', after)
+            events = page.get('events') or []
+            settled = bool(events) and events[-1].get('data', {}).get('state') not in (None, 'working')
+        else:
+            status = _json_request('GET', f'/agent/projects/{args.project_id}/status')
+            settled = status.get('state') != 'working'
+        if settled:
+            project = _json_request('GET', f'/agent/projects/{args.project_id}')
+            if not _autonomy_will_answer(project):
+                return _print(_describe(project))
+            grace = grace or time.monotonic() + AUTONOMY_GRACE_SECONDS
+            if time.monotonic() >= grace:
+                return _print(_describe(project))
+        if time.monotonic() >= max(deadline, grace or 0):
+            project = _describe(_json_request('GET', f'/agent/projects/{args.project_id}'))
+            return _print({**project, 'after_seq': after, 'note': 'still working - run project wait again'})
+        if after is None:
+            print(f'  ... {args.project_id}: working', file=sys.stderr)
+            time.sleep(delay)
+            delay = min(delay * 2, POLL_MAX_SECONDS)
+
+
+def cmd_project_act(args) -> int:
+    body = {'action': args.action}
+    for name in ('spec_version', 'pause_id', 'max_credits', 'version', 'value', 'text'):
+        if getattr(args, name, None) is not None:
+            body[name] = getattr(args, name)
+    if args.answers:
+        try:
+            body['answers'] = json.loads(args.answers)
+        except json.JSONDecodeError as exc:
+            raise HumanPenError('--answers must be JSON: {"<question id>": "<answer>"}', code='BAD_ANSWERS') from exc
+    answer = _json_request('POST', f'/agent/projects/{args.project_id}/actions', body, idempotent=True)
+    return _print({'project_id': args.project_id, 'done': args.action, 'after_seq': answer.get('seq')})
+
+
+def cmd_project_message(args) -> int:
+    files = _local_files(args.file)
+    names = []
+    if files:
+        targets = _json_request('POST', f'/agent/projects/{args.project_id}/uploads',
+                                {'files': [{'name': item['name'], 'size': item['size']} for item in files]},
+                                idempotent=True)
+        names = _upload(args.project_id, targets.get('uploads'), files)
+    sent = _json_request('POST', f'/agent/projects/{args.project_id}/messages',
+                         {'text': args.text, **({'attachments': names} if names else {})}, idempotent=True)
+    return _print({'project_id': args.project_id, 'after_seq': sent.get('seq'), 'files': names})
+
+
+class _NoRedirect(request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def cmd_project_download(args) -> int:
+    """Save a delivered version's zip. The API redirects to a short-lived signed URL, fetched without the key."""
+
+    deliveries = _json_request('GET', f'/agent/projects/{args.project_id}/deliveries').get('deliveries') or []
+    chosen = ([item for item in deliveries if item.get('version') == args.version] if args.version
+              else deliveries[-1:])
+    if not chosen:
+        raise HumanPenError('nothing delivered yet' if not args.version else f'no delivered version {args.version}',
+                            code='NO_DELIVERY')
+    version = chosen[0]['version']
+    zip_path = f'/agent/projects/{args.project_id}/deliveries/{version}/zip'
+    req = request.Request(_base_url() + zip_path)
+    req.add_header('Authorization', f'Bearer {_api_key()}')
+    req.add_header('User-Agent', 'humanpen-skill/1.0')
+    location = None
+    try:
+        request.build_opener(_NoRedirect).open(req, timeout=60)
+    except error.HTTPError as exc:
+        location = exc.headers.get('Location') if 300 <= exc.code < 400 else None
+        if location is None:
+            raise HumanPenError(f'HTTP {exc.code}: the delivery could not be downloaded', code='DOWNLOAD_FAILED',
+                                retryable=exc.code >= 500) from exc
+    if not location:
+        raise HumanPenError('the API gave no download link', code='DOWNLOAD_FAILED')
+    directory = Path(args.output or '.').expanduser()
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / f'project-{args.project_id[:8]}-v{version}.zip'
+    with request.urlopen(location, timeout=600) as response:
+        target.write_bytes(response.read())
+    return _print({'project_id': args.project_id, 'version': version, 'files': chosen[0].get('files'),
+                   'output': str(target), 'bytes': target.stat().st_size})
+
+
+def _add_project_commands(subparsers) -> None:
+    project = subparsers.add_parser(
+        'project', help='hand a research, data analysis or writing task to HumanPen\'s cloud agents')
+    commands = project.add_subparsers(dest='project_command', required=True)
+
+    start = commands.add_parser('start', help='start a project: upload files and send the request')
+    start.add_argument('request', help="what the user wants done, in the user's words")
+    start.add_argument('--file', action='append', metavar='PATH', help='an input file (repeat for more)')
+    start.add_argument('--title', help='a name for the project')
+    start.add_argument('--lang', help='the language to write in, e.g. en or zh')
+    start.add_argument('--max-credits', dest='max_credits', type=int, metavar='N',
+                       help='a cap on what the whole project may be charged, agreed by the user; with it budget '
+                            'pauses go on by themselves within the cap')
+    start.add_argument('--auto-confirm', dest='auto_confirm', action='store_true',
+                       help='confirm a plan whose estimate fits the cap without asking (needs --max-credits)')
+    start.add_argument('--answer-recommended', dest='answer_recommended', action='store_true',
+                       help="answer the agents' questions with the recommended answers (needs --max-credits)")
+    start.set_defaults(func=cmd_project_start)
+
+    show = commands.add_parser('show', help='where a project stands: its wait, plan, questions, last message')
+    show.add_argument('project_id')
+    show.set_defaults(func=cmd_project_show)
+
+    wait = commands.add_parser('wait', help='wait until the project needs the user or has finished')
+    wait.add_argument('project_id')
+    wait.add_argument('--after', type=int, metavar='SEQ', help='the after_seq the last command printed')
+    wait.add_argument('--timeout', type=float, default=DEFAULT_TIMEOUT_SECONDS, help='seconds to wait at most')
+    wait.set_defaults(func=cmd_project_wait)
+
+    act = commands.add_parser('act', help="take one of the project's allowed_actions")
+    act.add_argument('project_id')
+    act.add_argument('action', choices=['confirm_plan', 'answer', 'top_up', 'one_more_round', 'accept_as_is',
+                                        'pause', 'resume', 'cancel', 'feedback', 'extend_retention'])
+    act.add_argument('--spec-version', dest='spec_version', type=int, help='confirm_plan: the version shown')
+    act.add_argument('--pause-id', dest='pause_id', help='top_up: the pause it continues')
+    act.add_argument('--answers', help='answer: JSON {"<question id>": "<answer>"}')
+    act.add_argument('--max-credits', dest='max_credits', type=int, help='a higher cap for the whole project')
+    act.add_argument('--version', type=int, help='feedback: the delivered version')
+    act.add_argument('--value', choices=['satisfied', 'needs_changes'], help='feedback: the verdict')
+    act.add_argument('--text', help='feedback: what to change')
+    act.set_defaults(func=cmd_project_act)
+
+    message = commands.add_parser('message', help='write to the agents, with files: context, or changes after a '
+                                                  'delivery')
+    message.add_argument('project_id')
+    message.add_argument('text')
+    message.add_argument('--file', action='append', metavar='PATH', help='a file to add (repeat for more)')
+    message.set_defaults(func=cmd_project_message)
+
+    download = commands.add_parser('download', help='save a delivered version as a zip')
+    download.add_argument('project_id')
+    download.add_argument('--version', type=int, help='the delivered version (default: the latest)')
+    download.add_argument('-o', '--output', metavar='DIR', help='the directory to save it in (default: here)')
+    download.set_defaults(func=cmd_project_download)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI, one subcommand per operation."""
 
     parser = argparse.ArgumentParser(
         prog='humanpen.py',
-        description='Process documents with HumanPen: humanize, fix citations, condense, translate.',
+        description='Process documents with HumanPen: humanize, fix citations, condense, translate; or run a '
+                    'research project with its cloud agents.',
     )
     subparsers = parser.add_subparsers(dest='command', required=True)
 
@@ -513,6 +860,7 @@ def build_parser() -> argparse.ArgumentParser:
     balance = subparsers.add_parser('balance', help='show the credit balance')
     balance.set_defaults(func=cmd_balance)
 
+    _add_project_commands(subparsers)
     return parser
 
 

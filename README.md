@@ -136,6 +136,31 @@ A finished job prints JSON with `output` (where the file landed) and
 Citation styles: APA 7, MLA 9, Harvard, Chicago (both), IEEE, Vancouver,
 GB/T 7714, AMA, ACS, OSCOLA. Translation covers 12 languages.
 
+## Research projects
+
+Besides documents, the same key can hand a whole research, data analysis or writing task to HumanPen's cloud agents
+— the projects of the **Start a project** page: they scope the request with you, quote a plan in credits, do the
+work, have it reviewed and deliver files. Create the key with **Research projects** ticked.
+
+```bash
+# Start: upload the inputs, send the request; prints project_id and after_seq
+python3 scripts/humanpen.py project start "What drives churn? A 1,500-word report with the code." --file sales.csv
+
+# Wait until it needs you (questions, a plan to confirm) or is done
+python3 scripts/humanpen.py project wait <project_id> --after <after_seq>
+
+# Answer, confirm the plan you were shown, or take another allowed action
+python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version 1
+
+# Download the delivery as a zip; ask for changes with a message (a new round)
+python3 scripts/humanpen.py project download <project_id> -o out/
+python3 scripts/humanpen.py project message <project_id> "Add a section on pricing."
+```
+
+Confirming a plan starts the paid work, charged by use. To let it run unattended, start it with a cap you are
+willing to spend: `--max-credits 20000 --auto-confirm --answer-recommended` confirms plans that fit and answers with
+the recommended answers, never past that cap for the whole project.
+
 ## Two things worth knowing
 
 **Jobs take minutes.** The command waits, printing progress to stderr.

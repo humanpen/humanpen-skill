@@ -23,7 +23,7 @@ from pathlib import Path
 
 BASE_URL = os.environ.get('HUMANPEN_BASE_URL', 'https://api.humanpen.net/v1').rstrip('/')
 CLIENT = Path(__file__).resolve().parent / 'humanpen.py'
-PATH_PATTERN = re.compile(r"'(/(?:jobs|files|credits|detect-reports|auth)[^'\s]*)'")
+PATH_PATTERN = re.compile(r"'(/(?:jobs|files|credits|detect-reports|auth|agent)[^'\s?]*)[?']")
 PLACEHOLDER = re.compile(r'\{[^}]+\}')
 
 

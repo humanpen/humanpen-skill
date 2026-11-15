@@ -1,6 +1,6 @@
 ---
 name: humanpen
-description: Humanize document files with HumanPen to lower their AI-detection score. Rewrite a whole .docx/.pptx, or only the passages a Turnitin/iThenticate AI report flagged, while keeping every fact, number, citation, table and formula intact. Also converts citations to one style (APA, MLA, IEEE, GB/T 7714), condenses a document to a word budget, and translates while preserving layout. Use when the user points at a document FILE (.docx/.pptx; translate also takes .pdf/.xlsx/.epub/.html/.txt) or such an AI report and wants any of these; not for text pasted into chat.
+description: Humanize document files with HumanPen to lower their AI-detection score. Rewrite a whole .docx/.pptx, or only the passages a Turnitin/iThenticate AI report flagged, while keeping every fact, number, citation, table and formula intact. Also converts citations to one style (APA, MLA, IEEE, GB/T 7714), condenses a document to a word budget, and translates while preserving layout. Use when the user points at a document FILE (.docx/.pptx; translate also takes .pdf/.xlsx/.epub/.html/.txt) or such an AI report and wants any of these; not for text pasted into chat. Also hands a whole research, data analysis or writing task, with its files, to HumanPen's cloud agents (`project` commands).
 license: Apache-2.0
 ---
 
@@ -72,6 +72,19 @@ python3 scripts/humanpen.py report turnitin.pdf
 python3 scripts/humanpen.py status <job_id> --download paper.docx
 python3 scripts/humanpen.py balance
 ```
+
+### Research projects — a whole task for the cloud agents
+
+For a research, data analysis or writing task rather than one document to rewrite: the agents scope it with the user, quote a plan in credits, do the work, have it reviewed and deliver files. The key must have been created with **Research projects** ticked.
+
+```bash
+python3 scripts/humanpen.py project start "<the user's request>" --file data.csv   # prints project_id, after_seq
+python3 scripts/humanpen.py project wait <project_id> --after <after_seq>          # until it needs the user or is done
+python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version 1 # or: answer --answers '{"q1": "..."}'
+python3 scripts/humanpen.py project download <project_id> -o out/                  # the delivery, as a zip
+```
+
+**Confirming a plan spends credits (charged by use): show the user the plan and estimate that `project wait` prints, and confirm only with their agreement** — unless they set a cap: `project start ... --max-credits N --auto-confirm --answer-recommended` then runs unattended within it. `project show <id>` re-reads where it stands; `project message <id> "..."` asks for changes after a delivery (a new round).
 
 ## Reading the output
 

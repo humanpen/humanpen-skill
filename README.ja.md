@@ -137,6 +137,27 @@ python3 scripts/humanpen.py balance
 対応する引用形式：APA 7、MLA 9、Harvard、Chicago（2 種）、IEEE、Vancouver、
 GB/T 7714、AMA、ACS、OSCOLA。翻訳は 12 言語に対応します。
 
+## リサーチプロジェクト
+
+ドキュメントの処理だけでなく、同じ API キーでリサーチ、データ分析、執筆などのタスク全体を HumanPen のクラウドエージェント に任せることもできます——ウェブサイトの「**プロジェクトを開始**」ページのプロジェクトと同じです：要件をすり合わせ、クレジットで見積もりプランを提示し、作業を行い、レビューを経てファイルを納品します。API キーを作成する際は「**リサーチプロジェクト**」にチェックを入れてください。
+
+```bash
+# 開始：入力ファイルをアップロードし、リクエストを送信。project_id と after_seq を出力
+python3 scripts/humanpen.py project start "顧客解約の主な要因は何か？分析コード付きで1,500語のレポートを作成。" --file sales.csv
+
+# 対応が必要になるまで（質問、確認待ちのプランなど）、または完了するまで待機
+python3 scripts/humanpen.py project wait <project_id> --after <after_seq>
+
+# 回答、提示されたプランの確認、その他の許可されたアクションを実行
+python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version 1
+
+# 成果物を zip でダウンロード。メッセージで修正を依頼（新しいラウンドを開始）
+python3 scripts/humanpen.py project download <project_id> -o out/
+python3 scripts/humanpen.py project message <project_id> "価格設定に関するセクションを追加。"
+```
+
+プランを確認すると有料の作業が開始され、実際の使用量に応じてクレジットが消費されます。無人で実行させたい場合は、許容できる上限を設定して開始します：`--max-credits 20000 --auto-confirm --answer-recommended` を指定すると、上限に収まるプランを自動で確認し、推奨される回答で質問に答えながら進行します。プロジェクト全体でこの上限を超えることはありません。
+
 ## 知っておくとよい 2 点
 
 **ジョブは分単位です。** コマンドは待機し、進捗を stderr に出力します。コマンドを
