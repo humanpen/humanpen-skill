@@ -75,7 +75,7 @@ python3 scripts/humanpen.py balance
 
 ### Research projects — a whole task for the cloud agents
 
-For a research, data analysis or writing task rather than one document to rewrite: the agents scope it with the user, quote a plan in credits, do the work, have it reviewed and deliver files. The key must have been created with **Research projects** ticked.
+For a research, data analysis or writing task rather than one document to rewrite: the agents scope it with the user, propose a plan, do the work, have it reviewed and deliver files. The key must have been created with **Research projects** ticked.
 
 ```bash
 python3 scripts/humanpen.py project start "<the user's request>" --file data.csv   # prints project_id, after_seq
@@ -84,7 +84,7 @@ python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version
 python3 scripts/humanpen.py project download <project_id> -o out/                  # the delivery, as a zip
 ```
 
-**Confirming a plan spends credits (charged by use): show the user the plan and estimate that `project wait` prints, and confirm only with their agreement** — unless they set a cap: `project start ... --max-credits N --auto-confirm --answer-recommended` then runs unattended within it. `project show <id>` re-reads where it stands; `project message <id> "..."` asks for changes after a delivery (a new round).
+**Confirming a plan spends credits (charged by use): show the user the plan that `project wait` prints (it is charged by what it uses; there is no price up front) and confirm only with their agreement** — unless they set a cap: `project start ... --max-credits N --auto-confirm --answer-recommended` then runs unattended within it. `project show <id>` re-reads where it stands; `project message <id> "..."` asks for changes after a delivery (a new round).
 
 ## Reading the output
 

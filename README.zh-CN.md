@@ -133,7 +133,7 @@ GB/T 7714、AMA、ACS、OSCOLA。翻译覆盖 12 种语言。
 ## 发起项目
 
 除了处理文档，同一把密钥还能把一整件调研、数据分析或写作任务交给 HumanPen 的云端 Agent，也就是网站上「发起项目」
-做的事：先和你确认需求、按积分报方案，再动手、经审核后交付文件。创建密钥时要勾选「发起项目」。
+做的事：先和你确认需求、给出方案，再动手、经审核后交付文件。创建密钥时要勾选「发起项目」。
 
 ```bash
 # 发起：上传输入文件、发出需求；打印 project_id 和 after_seq
@@ -150,7 +150,7 @@ python3 scripts/humanpen.py project download <project_id> -o out/
 python3 scripts/humanpen.py project message <project_id> "加一节关于定价的分析。"
 ```
 
-确认方案后开始计费，按实际用量扣积分。想让它无人值守地做，发起时给一个你愿意花的上限：
+确认方案后开始计费，按实际用量扣积分，不预先报价。想让它无人值守地做，发起时给一个你愿意花的上限：
 `--max-credits 20000 --auto-confirm --answer-recommended` 会自动确认放得下的方案、按推荐答案回答问题，整个项目合计不超过这个上限。
 
 ## 两件值得知道的事

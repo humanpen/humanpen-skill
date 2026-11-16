@@ -139,7 +139,7 @@ GB/T 7714, AMA, ACS, OSCOLA. Translation covers 12 languages.
 ## Research projects
 
 Besides documents, the same key can hand a whole research, data analysis or writing task to HumanPen's cloud agents
-— the projects of the **Start a project** page: they scope the request with you, quote a plan in credits, do the
+— the projects of the **Start a project** page: they scope the request with you, propose a plan, do the
 work, have it reviewed and deliver files. Create the key with **Research projects** ticked.
 
 ```bash
@@ -157,7 +157,7 @@ python3 scripts/humanpen.py project download <project_id> -o out/
 python3 scripts/humanpen.py project message <project_id> "Add a section on pricing."
 ```
 
-Confirming a plan starts the paid work, charged by use. To let it run unattended, start it with a cap you are
+Confirming a plan starts the paid work, charged by what it uses; there is no price up front. To let it run unattended, start it with a cap you are
 willing to spend: `--max-credits 20000 --auto-confirm --answer-recommended` confirms plans that fit and answers with
 the recommended answers, never past that cap for the whole project.
 

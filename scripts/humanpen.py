@@ -527,27 +527,35 @@ def _latest_events(project_id: str, types: str, keep: int) -> list:
     return kept
 
 
-def _autonomy_will_answer(project: dict) -> bool:
-    """Whether HumanPen is about to answer this wait itself (the project's autonomy covers it)."""
+def _busy(state) -> bool:
+    """Whether a project is not the user's to act on yet: queued for its turn, or the agents at work."""
 
-    autonomy, wait = project.get('autonomy') or {}, project.get('wait') or {}
+    return state in ('queued', 'working')
+
+
+def _autonomy_will_answer(project: dict) -> bool:
+    """Whether HumanPen may be about to answer what the project needs from its user (its autonomy covers it): a plan
+    to confirm (HumanPen confirms it when its own estimate fits what is left of the cap; the API does not show that
+    estimate, so the grace in project wait decides), or questions it answers with the recommended answers."""
+
+    autonomy = project.get('autonomy') or {}
+    needed = (project.get('required_input') or {}).get('type')
     if not autonomy or project.get('state') != 'input_required':
         return False
-    if wait.get('reason') == 'plan' and autonomy.get('confirm_plan') == 'auto':
-        committed = (project.get('billing') or {}).get('committed_credits') or 0
-        estimate = project.get('estimate_credits')
-        return isinstance(estimate, int) and estimate <= autonomy.get('max_credits', 0) - committed
-    return wait.get('reason') == 'answers' and autonomy.get('answer') == 'recommended'
+    if needed == 'confirm_or_revise_plan':
+        return autonomy.get('confirm_plan') == 'auto'
+    return needed == 'answer_questions' and autonomy.get('answer') == 'recommended'
 
 
 def _describe(project: dict) -> dict:
     """What an agent needs to tell the user and take the next step."""
 
-    wait = project.get('wait') or {}
+    needed = project.get('required_input') or {}
     spec = project.get('spec') or {}
     picture = {
         'project_id': project.get('id'), 'title': project.get('title'), 'state': project.get('state'),
-        'stage': project.get('stage'), 'waiting_for': wait.get('reason'), 'pause_id': wait.get('pause_id'),
+        'stage': project.get('stage'), 'needs_from_user': needed.get('type'), 'pause_id': needed.get('pause_id'),
+        'queue_position': project.get('queue_position'),
         'allowed_actions': project.get('allowed_actions'),
         'now': (project.get('activity') or {}).get('description'),
         'question': project.get('question'),
@@ -555,16 +563,15 @@ def _describe(project: dict) -> dict:
         'consumed_credits': project.get('consumed_credits', (project.get('billing') or {}).get('consumed_credits')),
         'credit_cap': (project.get('autonomy') or {}).get('max_credits'),
     }
-    if wait.get('reason') == 'plan':
+    if needed.get('type') == 'confirm_or_revise_plan':
         picture['plan'] = {'spec_version': project.get('spec_version'), 'goal': spec.get('goal') or spec.get('title'),
                            'deliverables': [item.get('path') or item.get('description')
                                             for item in spec.get('deliverables') or []],
-                           'estimate_credits': project.get('estimate_credits'),
                            'estimate_minutes': project.get('estimate_minutes')}
-    if wait.get('reason') == 'answers' and project.get('stage') == 'scoping':
+    if needed.get('type') == 'answer_questions' and project.get('stage') == 'scoping':
         asked = _latest_events(project['id'], 'intake.questions', 1)
         picture['questions'] = asked[0]['data'].get('questions') if asked else None
-    if project.get('state') != 'working':
+    if not _busy(project.get('state')):
         said = _latest_events(project['id'], 'agent.message', 1)
         text = str(said[0]['data'].get('text') or '') if said else ''
         picture['last_message'] = text[:MESSAGE_CHARS] + ('...' if len(text) > MESSAGE_CHARS else '')
@@ -604,7 +611,7 @@ def cmd_project_show(args) -> int:
 
 
 def cmd_project_wait(args) -> int:
-    """Wait until the project needs the user or has finished (its state leaves working)."""
+    """Wait until the project needs the user or has finished (its state is no longer queued or working)."""
 
     deadline = time.monotonic() + args.timeout
     grace = None
@@ -617,10 +624,12 @@ def cmd_project_wait(args) -> int:
                                         f'&types=project.state&wait={left}')
             after = page.get('next_after', after)
             events = page.get('events') or []
-            settled = bool(events) and events[-1].get('data', {}).get('state') not in (None, 'working')
+            state = events[-1].get('data', {}).get('state') if events else None
+            settled = state is not None and not _busy(state)
         else:
             status = _json_request('GET', f'/agent/projects/{args.project_id}/status')
-            settled = status.get('state') != 'working'
+            state = status.get('state')
+            settled = not _busy(state)
         if settled:
             project = _json_request('GET', f'/agent/projects/{args.project_id}')
             if not _autonomy_will_answer(project):
@@ -632,7 +641,7 @@ def cmd_project_wait(args) -> int:
             project = _describe(_json_request('GET', f'/agent/projects/{args.project_id}'))
             return _print({**project, 'after_seq': after, 'note': 'still working - run project wait again'})
         if after is None:
-            print(f'  ... {args.project_id}: working', file=sys.stderr)
+            print(f'  ... {args.project_id}: {state or "working"}', file=sys.stderr)
             time.sleep(delay)
             delay = min(delay * 2, POLL_MAX_SECONDS)
 
@@ -716,12 +725,14 @@ def _add_project_commands(subparsers) -> None:
                        help='a cap on what the whole project may be charged, agreed by the user; with it budget '
                             'pauses go on by themselves within the cap')
     start.add_argument('--auto-confirm', dest='auto_confirm', action='store_true',
-                       help='confirm a plan whose estimate fits the cap without asking (needs --max-credits)')
+                       help="confirm the plan without asking when HumanPen's estimate of it fits what is left of "
+                            'the cap (needs --max-credits)')
     start.add_argument('--answer-recommended', dest='answer_recommended', action='store_true',
                        help="answer the agents' questions with the recommended answers (needs --max-credits)")
     start.set_defaults(func=cmd_project_start)
 
-    show = commands.add_parser('show', help='where a project stands: its wait, plan, questions, last message')
+    show = commands.add_parser('show', help='where a project stands: what it needs from the user, the plan or '
+                                            'questions, the last message')
     show.add_argument('project_id')
     show.set_defaults(func=cmd_project_show)
 
