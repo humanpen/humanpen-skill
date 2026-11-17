@@ -646,6 +646,8 @@ def _describe(project: dict) -> dict:
         'stage': project.get('stage'), 'needs_from_user': needed.get('type'), 'pause_id': needed.get('pause_id'),
         'queue_position': project.get('queue_position'),
         'allowed_actions': project.get('allowed_actions'),
+        # Messages the agents have not read yet: they read them after the step they are on (or at once: --now).
+        'waiting_messages': project.get('pending_messages') or None,
         'now': (project.get('activity') or {}).get('description'),
         'question': project.get('question'),
         'delivered_version': project.get('delivered_version'),
@@ -757,8 +759,9 @@ def cmd_project_message(args) -> int:
                                 {'files': [{'name': item['name'], 'size': item['size']} for item in files]},
                                 idempotent=True)
         names = _upload(args.project_id, targets.get('uploads'), files)
-    sent = _json_request('POST', f'/agent/projects/{args.project_id}/messages',
-                         {'text': args.text, **({'attachments': names} if names else {})}, idempotent=True)
+    body = {'text': args.text, **({'attachments': names} if names else {}),
+            **({'deliver_now': True} if args.now else {})}
+    sent = _json_request('POST', f'/agent/projects/{args.project_id}/messages', body, idempotent=True)
     return _print({'project_id': args.project_id, 'after_seq': sent.get('seq'), 'files': names})
 
 
@@ -834,7 +837,7 @@ def _add_project_commands(subparsers) -> None:
     act = commands.add_parser('act', help="take one of the project's allowed_actions")
     act.add_argument('project_id')
     act.add_argument('action', choices=['confirm_plan', 'answer', 'top_up', 'one_more_round', 'accept_as_is',
-                                        'pause', 'resume', 'cancel', 'feedback', 'extend_retention'])
+                                        'pause', 'resume', 'cancel', 'feedback', 'extend_retention', 'deliver_now'])
     act.add_argument('--spec-version', dest='spec_version', type=int, help='confirm_plan: the version shown')
     act.add_argument('--pause-id', dest='pause_id', help='top_up: the pause it continues')
     act.add_argument('--answers', help='answer: JSON {"<question id>": "<answer>"}')
@@ -845,10 +848,12 @@ def _add_project_commands(subparsers) -> None:
     act.set_defaults(func=cmd_project_act)
 
     message = commands.add_parser('message', help='write to the agents, with files: context, or changes after a '
-                                                  'delivery')
+                                                  'delivery; while they work they read it after the step they are on')
     message.add_argument('project_id')
     message.add_argument('text')
     message.add_argument('--file', action='append', metavar='PATH', help='a file to add (repeat for more)')
+    message.add_argument('--now', action='store_true',
+                         help='interrupt the step the agents are on so they read it at once (urgent corrections only)')
     message.set_defaults(func=cmd_project_message)
 
     download = commands.add_parser('download', help='save a delivered version as a zip')

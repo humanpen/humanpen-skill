@@ -94,7 +94,7 @@ python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version
 python3 scripts/humanpen.py project download <project_id> -o out/                  # the delivery, as a zip
 ```
 
-**Confirming a plan spends credits (charged by use): show the user the plan that `project wait` prints (it is charged by what it uses; there is no price up front) and confirm only with their agreement** — unless they set a cap: `project start ... --max-credits N --auto-confirm --answer-recommended` then runs unattended within it. `project show <id>` re-reads where it stands; `project message <id> "..."` asks for changes after a delivery (a new round).
+**Confirming a plan spends credits (charged by use): show the user the plan that `project wait` prints (it is charged by what it uses; there is no price up front) and confirm only with their agreement** — unless they set a cap: `project start ... --max-credits N --auto-confirm --answer-recommended` then runs unattended within it. `project show <id>` re-reads where it stands; `project message <id> "..."` asks for changes after a delivery (a new round); while the agents work they read it after the step they are on, and `--now` interrupts that step for an urgent correction.
 
 ## Reading the output
 
