@@ -100,7 +100,7 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 # 只重写检测报告标出的段落
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 
-# 或只改你自己选的段落：一个 JSON 列表，写这些段落的原文
+# 或只重写自选段落：包含其精确原文的 JSON 列表
 python3 scripts/humanpen.py humanize paper.docx --segments-file passages.json
 
 # 限定篇幅（试验功能——限定字数会削弱降 AI 效果）。整篇区间，或对报告标出的段落逐段设区间：
@@ -113,8 +113,8 @@ python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
 # 文内引用与参考文献列表转成指定格式
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 
-# 缩写到目标字数；或只缩选定的段落，各段单独设字数（[{"text": ..., "max_words": N}]）。
-# --mode delete 整句删去价值低的句子，其余原文一字不动（默认 rewrite：改写句子来缩）
+# 缩写到目标字数，或只缩写选定段落，各段单独设字数（[{"text": ..., "max_words": N}]）。
+# --mode delete 整句删去低价值句子，其余原文一字不动（默认 rewrite：改写句子缩短）
 python3 scripts/humanpen.py condense paper.docx --max-words 4000
 python3 scripts/humanpen.py condense paper.docx --segments-file budgets.json --mode delete
 
@@ -128,7 +128,7 @@ python3 scripts/humanpen.py report turnitin.pdf
 python3 scripts/humanpen.py status <job_id> --download paper.docx
 python3 scripts/humanpen.py balance
 
-# 你的任务列表；取消排队中或运行中的任务（冻结的积分退回）；重跑失败或已取消的任务（会扣积分）
+# 查看任务列表；取消排队中或运行中的任务（冻结的积分退回）；重跑失败或已取消的任务（会扣积分）
 python3 scripts/humanpen.py jobs --type humanize
 python3 scripts/humanpen.py cancel <job_id>
 python3 scripts/humanpen.py retry <job_id> --download paper.docx

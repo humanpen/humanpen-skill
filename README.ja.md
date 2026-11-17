@@ -106,7 +106,7 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 # 検出レポートが指摘した箇所だけを書き直す
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 
-# または自分で選んだ箇所だけ：その原文を並べた JSON リスト
+# または自分で選んだ箇所だけ：その正確な原文を並べた JSON リスト
 python3 scripts/humanpen.py humanize paper.docx --segments-file passages.json
 
 # 文字数を制限（試験的機能——文字数の制限は AI 率低減の効果を弱めます）。
@@ -120,7 +120,7 @@ python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
 # 文中引用と参考文献一覧を指定の形式へ
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 
-# 目標字数まで短縮。または選んだ箇所だけを、それぞれの字数まで（[{"text": ..., "max_words": N}]）。
+# 目標字数まで短縮。または選んだ箇所だけをそれぞれの字数まで（[{"text": ..., "max_words": N}]）。
 # --mode delete は価値の低い文を丸ごと削り、ほかは原文どおり（既定は rewrite：文を書き換えて短縮）
 python3 scripts/humanpen.py condense paper.docx --max-words 4000
 python3 scripts/humanpen.py condense paper.docx --segments-file budgets.json --mode delete
