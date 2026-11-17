@@ -27,7 +27,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
-from urllib import error, request
+from urllib import error, parse, request
 
 DEFAULT_BASE_URL = 'https://api.humanpen.net/v1'
 SIGNUP_URL = 'https://humanpen.net'
@@ -290,14 +290,8 @@ def run_operation(operation: str, args, fields: dict) -> int:
     return _await_and_report(create_job(operation, args.document, fields), args, args.document)
 
 
-def _load_segments_file(path: str) -> str:
-    """Load a per-passage word-budget JSON file into the API's segments field.
-
-    The file is a JSON array of {text, min_words?, max_words?}; this maps those
-    user-facing names onto the API's {text, word_min?, word_max?} and returns the
-    JSON string the multipart ``segments`` field expects. Validated here so a bad
-    file fails before the upload, not after a charge.
-    """
+def _read_segments_list(path: str) -> list:
+    """Read a segments file: a non-empty JSON array, checked before any upload so a bad file costs nothing."""
 
     source = Path(path).expanduser()
     if not source.is_file():
@@ -308,8 +302,23 @@ def _load_segments_file(path: str) -> str:
         raise HumanPenError(f'segments file is not valid JSON: {exc}', code='INVALID_SEGMENTS') from exc
     if not isinstance(items, list) or not items:
         raise HumanPenError('segments file must be a non-empty JSON array', code='INVALID_SEGMENTS')
+    return items
+
+
+def _load_segments_file(path: str) -> str:
+    """Load a humanize segments file into the API's segments field.
+
+    The file is a JSON array of {text, min_words?, max_words?}, or of plain
+    strings: passages to rewrite with no word limit. Either way only those
+    passages are touched. This maps the user-facing names onto the API's
+    {text, word_min?, word_max?} and returns the JSON string the multipart
+    ``segments`` field expects.
+    """
+
     segments: list[dict] = []
-    for item in items:
+    for item in _read_segments_list(path):
+        if isinstance(item, str):
+            item = {'text': item}
         if not isinstance(item, dict) or not str(item.get('text', '')).strip():
             raise HumanPenError('each segment needs a non-empty "text"', code='INVALID_SEGMENTS')
         segment: dict = {'text': item['text']}
@@ -318,6 +327,21 @@ def _load_segments_file(path: str) -> str:
         if item.get('max_words') is not None:
             segment['word_max'] = item['max_words']
         segments.append(segment)
+    return json.dumps(segments, ensure_ascii=False)
+
+
+def _load_condense_segments(path: str) -> str:
+    """Load a condense segments file, a JSON array of {text, max_words}, into the API's segments field."""
+
+    segments: list[dict] = []
+    for item in _read_segments_list(path):
+        if not isinstance(item, dict) or not str(item.get('text', '')).strip():
+            raise HumanPenError('each segment needs a non-empty "text"', code='INVALID_SEGMENTS')
+        budget = item.get('max_words')
+        if not isinstance(budget, int) or isinstance(budget, bool) or budget < 1:
+            raise HumanPenError('each condense segment needs "max_words", a positive whole number',
+                                code='INVALID_SEGMENTS')
+        segments.append({'text': item['text'], 'max_words': budget})
     return json.dumps(segments, ensure_ascii=False)
 
 
@@ -368,10 +392,19 @@ def cmd_citations(args) -> int:
 
 
 def cmd_condense(args) -> int:
-    return run_operation('condense', args, {
+    # The whole document's target or per-passage budgets, never both: the API refuses the mix.
+    if (args.max_words is None) == (args.segments_file is None):
+        raise HumanPenError(
+            'give either --max-words (the whole document) or --segments-file (chosen passages, each with its '
+            'own max_words), not both and not neither', code='INVALID_WORD_BUDGET')
+    fields = {
         'max_words': args.max_words,
+        'mode': args.mode,
         'additional_instructions': args.instructions,
-    })
+    }
+    if args.segments_file:
+        fields['segments'] = _load_condense_segments(args.segments_file)
+    return run_operation('condense', args, fields)
 
 
 def cmd_translate(args) -> int:
@@ -403,6 +436,62 @@ def cmd_status(args) -> int:
     output = None
     if args.download and job.get('status') == 'DONE':
         output = download_result(job, args.download, args.output)
+    report_job(job, output)
+    return 0
+
+
+def _job_line(job: dict) -> dict:
+    """One job in a list: what tells jobs apart, and what a next step needs."""
+
+    return {
+        'job_id': job.get('job_id'),
+        'operation': job.get('operation'),
+        'status': job.get('status'),
+        'progress_percent': job.get('progress_percent'),
+        'file': (job.get('source') or {}).get('filename'),
+        'credits_charged': (job.get('credits') or {}).get('charged'),
+        'created_at': job.get('created_at'),
+        'error': (job.get('error') or {}).get('code'),
+    }
+
+
+def cmd_jobs(args) -> int:
+    query = {'limit': args.limit, 'offset': args.offset}
+    if args.type:
+        query['type'] = args.type
+    page = _request('GET', f'/jobs?{parse.urlencode(query)}')
+    print(json.dumps({
+        'total': page.get('total'),
+        'has_more': page.get('has_more'),
+        'jobs': [_job_line(job) for job in page.get('items') or []],
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_cancel(args) -> int:
+    """Cancel a queued or running job; the API returns its reserved credits."""
+
+    report_job(_request('POST', f'/jobs/{args.job_id}/cancel', body=b''), None)
+    return 0
+
+
+def cmd_retry(args) -> int:
+    """Run a failed or cancelled job again with the same settings; credits are reserved anew."""
+
+    job = _request('POST', f'/jobs/{args.job_id}/retry', body=b'')
+    print(f'job {job.get("job_id")} running again, {(job.get("credits") or {}).get("frozen")} credits reserved',
+          file=sys.stderr)
+    if not args.no_wait:
+        job = wait_for_job(job['job_id'], timeout_seconds=args.timeout)
+        if job.get('status') != 'DONE':
+            failure = job.get('error') or {}
+            raise HumanPenError(
+                f'job {job.get("status")}: {failure.get("message") or "no detail"}',
+                code=str(failure.get('code') or ''),
+            )
+    output = None
+    if job.get('status') == 'DONE' and (args.download or args.output):
+        output = download_result(job, args.download or args.output, args.output)
     report_job(job, output)
     return 0
 
@@ -804,9 +893,9 @@ def build_parser() -> argparse.ArgumentParser:
                           help='upper word bound for the rewritten document (optional). Same caveat and '
                                'exclusivity as --min-words')
     humanize.add_argument('--segments-file', dest='segments_file', metavar='PATH',
-                          help='JSON file for per-passage word control: a list of '
-                               '{"text": ..., "min_words": N, "max_words": N}. Get the passage texts from '
-                               'the `report` command and pass --report alongside so it defines scope. '
+                          help='JSON file of passages to rewrite, only these: plain strings, or '
+                               '{"text": ..., "min_words": N, "max_words": N} for per-passage word control. '
+                               'With --report, take the texts from the `report` command. Word limits are '
                                'EXPERIMENTAL (see --min-words). Not with --min-words/--max-words')
     humanize.set_defaults(func=cmd_humanize)
 
@@ -841,8 +930,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     condense = add_job_flags(subparsers.add_parser(
         'condense', help='shorten a document to a word budget'))
-    condense.add_argument('--max-words', dest='max_words', required=True, type=int,
-                          help='target word count for the whole document')
+    condense.add_argument('--max-words', dest='max_words', type=int,
+                          help='target word count for the whole document (or use --segments-file)')
+    condense.add_argument('--segments-file', dest='segments_file', metavar='PATH',
+                          help='JSON file of chosen passages, each with its own budget: '
+                               '[{"text": "...", "max_words": 80}]; only these are shortened')
+    condense.add_argument('--mode', choices=['rewrite', 'delete'],
+                          help='rewrite (default) condenses sentences in place; delete removes whole '
+                               'low-value sentences and keeps every other word verbatim')
     condense.add_argument('--instructions', help='extra requirements for this job')
     condense.set_defaults(func=cmd_condense)
 
@@ -867,6 +962,28 @@ def build_parser() -> argparse.ArgumentParser:
                         help='download the result, naming it after this source document')
     status.add_argument('-o', '--output', help='where to write the downloaded result')
     status.set_defaults(func=cmd_status)
+
+    jobs = subparsers.add_parser('jobs', help='list your document jobs, newest first')
+    jobs.add_argument('--type', choices=['humanize', 'condense', 'citation_format_correction', 'translate'],
+                      help='only jobs of this kind')
+    jobs.add_argument('--limit', type=int, default=20, help='how many to list (default: 20, at most 100)')
+    jobs.add_argument('--offset', type=int, default=0, help='how many to skip, for the next page')
+    jobs.set_defaults(func=cmd_jobs)
+
+    cancel = subparsers.add_parser('cancel', help='cancel a queued or running job; its reserved credits are returned')
+    cancel.add_argument('job_id')
+    cancel.set_defaults(func=cmd_cancel)
+
+    retry = subparsers.add_parser(
+        'retry', help='run a failed or cancelled job again with the same settings (spends credits)')
+    retry.add_argument('job_id')
+    retry.add_argument('--download', metavar='SOURCE',
+                       help='save the result, naming it after this source document')
+    retry.add_argument('-o', '--output', help='where to write the result')
+    retry.add_argument('--timeout', type=float, default=DEFAULT_TIMEOUT_SECONDS,
+                       help='seconds to wait before giving up on the job')
+    retry.add_argument('--no-wait', action='store_true', help='start it and print the receipt without waiting')
+    retry.set_defaults(func=cmd_retry)
 
     balance = subparsers.add_parser('balance', help='show the credit balance')
     balance.set_defaults(func=cmd_balance)

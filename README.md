@@ -104,6 +104,9 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 # Rewrite only the passages a detection report flagged
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
 
+# Or only passages you choose: a JSON list of their exact texts
+python3 scripts/humanpen.py humanize paper.docx --segments-file passages.json
+
 # Constrain length (EXPERIMENTAL - a word limit weakens AI-rate reduction).
 # Whole document, or per-passage budgets for the report's flagged passages:
 python3 scripts/humanpen.py humanize paper.docx --min-words 1500 --max-words 1800
@@ -116,8 +119,11 @@ python3 scripts/humanpen.py free-rehumanize <job_id> --report new-turnitin.pdf
 # Citations and reference list to one style
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 
-# Shorten to a word budget
+# Shorten to a word budget, or only chosen passages, each to its own budget
+# ([{"text": ..., "max_words": N}]). --mode delete drops whole low-value
+# sentences and keeps every other word verbatim (default: rewrite)
 python3 scripts/humanpen.py condense paper.docx --max-words 4000
+python3 scripts/humanpen.py condense paper.docx --segments-file budgets.json --mode delete
 
 # Translate, keeping layout
 python3 scripts/humanpen.py translate paper.docx --to zh
@@ -128,6 +134,12 @@ python3 scripts/humanpen.py report turnitin.pdf
 # A job left running, and the balance
 python3 scripts/humanpen.py status <job_id> --download paper.docx
 python3 scripts/humanpen.py balance
+
+# Your jobs; cancel a queued or running one (its credits come back); run a
+# failed or cancelled one again (spends credits)
+python3 scripts/humanpen.py jobs --type humanize
+python3 scripts/humanpen.py cancel <job_id>
+python3 scripts/humanpen.py retry <job_id> --download paper.docx
 ```
 
 A finished job prints JSON with `output` (where the file landed) and

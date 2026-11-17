@@ -32,6 +32,8 @@ python3 scripts/humanpen.py humanize paper.docx --strategy balanced
 
 # 2. Only the passages a Turnitin / iThenticate report flagged — the rest is left untouched
 python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf
+#    Or only passages you choose: a JSON list of their exact texts
+python3 scripts/humanpen.py humanize paper.docx --segments-file passages.json
 
 # 3. Continue a finished job for FREE (once per job): re-runs its still-flagged
 #    passages against a fresh report. Pass the job_id that humanize returned.
@@ -54,7 +56,9 @@ python3 scripts/humanpen.py humanize paper.docx --report turnitin.pdf --segments
 #   gbt7714 | gbt7714_author_year | ama | acs | oscola
 python3 scripts/humanpen.py fix-citations paper.docx --style apa7
 
-# Shorten the whole document to a word budget
+# Shorten the whole document to a word budget, or only chosen passages
+#   (--segments-file: [{"text": ..., "max_words": N}]).  --mode delete drops whole
+#   low-value sentences and keeps every other word verbatim (default: rewrite)
 python3 scripts/humanpen.py condense paper.docx --max-words 4000
 
 # Translate, keeping layout, tables and formulas.  --to: zh | zh-tw | en | ja |
@@ -62,7 +66,7 @@ python3 scripts/humanpen.py condense paper.docx --max-words 4000
 python3 scripts/humanpen.py translate paper.docx --to zh
 ```
 
-### Read a report · resume a job · check credits
+### Read a report · manage jobs · check credits
 
 ```bash
 # A Turnitin / iThenticate report: overall AI %, and the flagged passages
@@ -71,6 +75,12 @@ python3 scripts/humanpen.py report turnitin.pdf
 # Pick a running job back up (optionally download its result); show the balance
 python3 scripts/humanpen.py status <job_id> --download paper.docx
 python3 scripts/humanpen.py balance
+
+# List jobs; cancel a queued or running one (its credits come back); run a
+#   failed or cancelled one again (spends credits)
+python3 scripts/humanpen.py jobs
+python3 scripts/humanpen.py cancel <job_id>
+python3 scripts/humanpen.py retry <job_id> --download paper.docx
 ```
 
 ### Research projects — a whole task for the cloud agents
@@ -97,4 +107,5 @@ A finished job prints JSON. Report its `output` (the result path) and `credits_c
 - **Formats.** humanize takes `.docx` / `.pptx`; fix-citations and condense take `.docx`; translate additionally takes `.pdf`, `.xlsx`, `.pptx`, `.epub`, `.html` and `.txt`.
 - **Minutes, not seconds.** The command waits and prints progress to stderr. Interrupting it does **not** cancel the job — `status <job_id>` picks it back up.
 - **A second pass is the plan, not a failure — and it is free.** If a detector still flags the result, `free-rehumanize <job_id>` with a fresh report rewrites only the still-flagged passages, at no credit cost (once per job, with a daily cap). Keep `balanced`; no need to escalate to `aggressive`.
+- **A paragraph is the smallest unit.** A chosen or flagged passage is widened to its whole paragraph, and billed as such.
 - **Result files are kept 7 days**, then deleted; the job record stays.
