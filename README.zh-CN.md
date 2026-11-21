@@ -158,6 +158,9 @@ python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version
 # 把交付下载成 zip；交付后发消息提出修改（开始新一轮）
 python3 scripts/humanpen.py project download <project_id> -o out/
 python3 scripts/humanpen.py project message <project_id> "加一节关于定价的分析。"
+
+# 发起时可以用 --title 起名，之后也能随时改名
+python3 scripts/humanpen.py project rename <project_id> "第三季度客户流失分析"
 ```
 
 确认方案后开始计费，按实际用量扣积分，不预先报价。想让它无人值守地做，发起时给一个你愿意花的上限：

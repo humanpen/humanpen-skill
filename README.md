@@ -167,6 +167,9 @@ python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version
 # Download the delivery as a zip; ask for changes with a message (a new round)
 python3 scripts/humanpen.py project download <project_id> -o out/
 python3 scripts/humanpen.py project message <project_id> "Add a section on pricing."
+
+# Name it with --title when you start it, or rename it any time
+python3 scripts/humanpen.py project rename <project_id> "Churn drivers, Q3"
 ```
 
 Confirming a plan starts the paid work, charged by what it uses; there is no price up front. To let it run unattended, start it with a cap you are

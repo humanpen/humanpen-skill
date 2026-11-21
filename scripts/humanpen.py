@@ -803,6 +803,16 @@ def cmd_project_download(args) -> int:
                    'output': str(target), 'bytes': target.stat().st_size})
 
 
+def cmd_project_rename(args) -> int:
+    """Give the project a new name (1 to 256 characters)."""
+
+    title = args.title.strip()
+    if not 1 <= len(title) <= 256:
+        raise HumanPenError('a project name is 1 to 256 characters', code='INVALID_TITLE')
+    settings = _json_request('PATCH', f'/agent/projects/{args.project_id}', {'title': title}, idempotent=True)
+    return _print({'project_id': settings.get('id') or args.project_id, 'title': settings.get('title') or title})
+
+
 def _add_project_commands(subparsers) -> None:
     project = subparsers.add_parser(
         'project', help='hand a research, data analysis or writing task to HumanPen\'s cloud agents')
@@ -861,6 +871,11 @@ def _add_project_commands(subparsers) -> None:
     download.add_argument('--version', type=int, help='the delivered version (default: the latest)')
     download.add_argument('-o', '--output', metavar='DIR', help='the directory to save it in (default: here)')
     download.set_defaults(func=cmd_project_download)
+
+    rename = commands.add_parser('rename', help='give a project a new name')
+    rename.add_argument('project_id')
+    rename.add_argument('title', help='the new name, 1 to 256 characters')
+    rename.set_defaults(func=cmd_project_rename)
 
 
 def build_parser() -> argparse.ArgumentParser:

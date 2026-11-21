@@ -164,6 +164,9 @@ python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version
 # 成果物を zip でダウンロード。メッセージで修正を依頼（新しいラウンドを開始）
 python3 scripts/humanpen.py project download <project_id> -o out/
 python3 scripts/humanpen.py project message <project_id> "価格設定に関するセクションを追加。"
+
+# 開始時に --title で名前を付けられ、あとからいつでも変更できます
+python3 scripts/humanpen.py project rename <project_id> "第3四半期の解約分析"
 ```
 
 プランを確認すると有料の作業が開始され、実際の使用量に応じてクレジットが消費されます。無人で実行させたい場合は、許容できる上限を設定して開始します：`--max-credits 20000 --auto-confirm --answer-recommended` を指定すると、上限に収まるプランを自動で確認し、推奨される回答で質問に答えながら進行します。プロジェクト全体でこの上限を超えることはありません。
