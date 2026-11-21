@@ -93,6 +93,8 @@ python3 scripts/humanpen.py project wait <project_id> --after <after_seq>       
 python3 scripts/humanpen.py project act <project_id> confirm_plan --spec-version 1 # or: answer --answers '{"q1": "..."}'
 python3 scripts/humanpen.py project download <project_id> -o out/                  # the delivery, as a zip
 python3 scripts/humanpen.py project rename <project_id> "<new name>"               # or name it with --title on start
+python3 scripts/humanpen.py project list                                          # your projects, newest first: find an id
+python3 scripts/humanpen.py project delete <project_id>                           # only when the user asks; cannot be undone
 ```
 
 **Confirming a plan spends credits (charged by use): show the user the plan that `project wait` prints (it is charged by what it uses; there is no price up front) and confirm only with their agreement** — unless they set a cap: `project start ... --max-credits N --auto-confirm --answer-recommended` then runs unattended within it. `project show <id>` re-reads where it stands; `project message <id> "..."` asks for changes after a delivery (a new round); while the agents work they read it after the step they are on, and `--now` interrupts that step for an urgent correction.

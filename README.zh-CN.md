@@ -161,6 +161,10 @@ python3 scripts/humanpen.py project message <project_id> "加一节关于定价�
 
 # 发起时可以用 --title 起名，之后也能随时改名
 python3 scripts/humanpen.py project rename <project_id> "第三季度客户流失分析"
+
+# 列出你的项目，最新的在前；删除项目会连同文件和交付一起删掉，无法恢复
+python3 scripts/humanpen.py project list
+python3 scripts/humanpen.py project delete <project_id>
 ```
 
 确认方案后开始计费，按实际用量扣积分，不预先报价。想让它无人值守地做，发起时给一个你愿意花的上限：

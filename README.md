@@ -170,6 +170,10 @@ python3 scripts/humanpen.py project message <project_id> "Add a section on prici
 
 # Name it with --title when you start it, or rename it any time
 python3 scripts/humanpen.py project rename <project_id> "Churn drivers, Q3"
+
+# Find your projects, newest first; delete one with its files and deliveries (it cannot be undone)
+python3 scripts/humanpen.py project list
+python3 scripts/humanpen.py project delete <project_id>
 ```
 
 Confirming a plan starts the paid work, charged by what it uses; there is no price up front. To let it run unattended, start it with a cap you are

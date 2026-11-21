@@ -813,6 +813,34 @@ def cmd_project_rename(args) -> int:
     return _print({'project_id': settings.get('id') or args.project_id, 'title': settings.get('title') or title})
 
 
+def _project_line(project: dict) -> dict:
+    """One project in a list: what tells projects apart, and what a next step needs."""
+
+    return {
+        'project_id': project.get('id'),
+        'title': project.get('title'),
+        'state': project.get('state'),
+        'needs_from_user': (project.get('required_input') or {}).get('type'),
+        'created_at': project.get('created_at'),
+        'updated_at': project.get('updated_at'),
+    }
+
+
+def cmd_project_list(args) -> int:
+    page = _json_request('GET', f'/agent/projects?{parse.urlencode({"limit": args.limit, "offset": args.offset})}')
+    items = page.get('items') or []
+    shown = (page.get('offset') or args.offset) + len(items)
+    return _print({'total': page.get('total'), 'has_more': shown < (page.get('total') or 0),
+                   'projects': [_project_line(item) for item in items]})
+
+
+def cmd_project_delete(args) -> int:
+    """Delete the project with its files and deliveries, stopping work under way. It cannot be undone."""
+
+    gone = _json_request('DELETE', f'/agent/projects/{args.project_id}', idempotent=True)
+    return _print({'project_id': gone.get('id') or args.project_id, 'deleted': bool(gone.get('deleted', True))})
+
+
 def _add_project_commands(subparsers) -> None:
     project = subparsers.add_parser(
         'project', help='hand a research, data analysis or writing task to HumanPen\'s cloud agents')
@@ -876,6 +904,17 @@ def _add_project_commands(subparsers) -> None:
     rename.add_argument('project_id')
     rename.add_argument('title', help='the new name, 1 to 256 characters')
     rename.set_defaults(func=cmd_project_rename)
+
+    listing = commands.add_parser('list', help='your projects, newest first, with what each needs from the user: '
+                                               'finds a project started in another conversation')
+    listing.add_argument('--limit', type=int, default=20, help='how many to list (default: 20, at most 100)')
+    listing.add_argument('--offset', type=int, default=0, help='how many to skip, for the next page')
+    listing.set_defaults(func=cmd_project_list)
+
+    delete = commands.add_parser('delete', help='delete a project with its files and deliveries, stopping work under '
+                                                'way; only when the user asked, it cannot be undone')
+    delete.add_argument('project_id')
+    delete.set_defaults(func=cmd_project_delete)
 
 
 def build_parser() -> argparse.ArgumentParser:

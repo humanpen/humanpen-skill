@@ -167,6 +167,10 @@ python3 scripts/humanpen.py project message <project_id> "価格設定に関す�
 
 # 開始時に --title で名前を付けられ、あとからいつでも変更できます
 python3 scripts/humanpen.py project rename <project_id> "第3四半期の解約分析"
+
+# プロジェクトを新しい順に一覧表示。削除するとファイルや成果物ごと消え、元に戻せません
+python3 scripts/humanpen.py project list
+python3 scripts/humanpen.py project delete <project_id>
 ```
 
 プランを確認すると有料の作業が開始され、実際の使用量に応じてクレジットが消費されます。無人で実行させたい場合は、許容できる上限を設定して開始します：`--max-credits 20000 --auto-confirm --answer-recommended` を指定すると、上限に収まるプランを自動で確認し、推奨される回答で質問に答えながら進行します。プロジェクト全体でこの上限を超えることはありません。
